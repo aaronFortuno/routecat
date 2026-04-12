@@ -37,7 +37,10 @@ func (a *API) HandleRegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	// Generate API key
 	b := make([]byte, 24)
-	rand.Read(b)
+	if _, err := rand.Read(b); err != nil {
+		http.Error(w, `{"error":"key generation failed"}`, http.StatusInternalServerError)
+		return
+	}
 	key := "rc_" + hex.EncodeToString(b)
 	userID := uuid.New().String()
 

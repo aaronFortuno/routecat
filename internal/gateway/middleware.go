@@ -78,9 +78,11 @@ func (rl *RateLimiter) cleanup() {
 func SecurityMiddleware(rl *RateLimiter, maxBodyBytes int64, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Rate limiting
+		// Use RemoteAddr only — X-Forwarded-For is set by Caddy but
+		// could be spoofed if accessed directly. Caddy sets X-Real-Ip.
 		ip := r.RemoteAddr
-		if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
-			ip = fwd
+		if realIP := r.Header.Get("X-Real-Ip"); realIP != "" {
+			ip = realIP
 		}
 		if !rl.Allow(ip) {
 			http.Error(w, `{"error":{"message":"rate limit exceeded"}}`, http.StatusTooManyRequests)

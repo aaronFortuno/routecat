@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"context"
+	"crypto/subtle"
 	"encoding/json"
 	"io"
 	"log"
@@ -74,12 +75,32 @@ func (nc *NodeConn) Send(msg WSMsg) error {
 
 // New creates a Gateway.
 func New(db *store.DB, rt *router.Router, bill *billing.Engine) *Gateway {
-	return &Gateway{
+	g := &Gateway{
 		nodes:       make(map[string]*NodeConn),
 		db:          db,
 		rt:          rt,
 		bill:        bill,
 		pendingJobs: make(map[string]*PendingJob),
+	}
+	go g.jobCleanupLoop()
+	return g
+}
+
+// jobCleanupLoop removes pending jobs older than 2 minutes (dead streams).
+func (g *Gateway) jobCleanupLoop() {
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+	for range ticker.C {
+		cutoff := time.Now().Add(-2 * time.Minute)
+		g.jobsMu.Lock()
+		for id, job := range g.pendingJobs {
+			if job.StartedAt.Before(cutoff) {
+				close(job.DoneCh)
+				delete(g.pendingJobs, id)
+				log.Printf("routecat: expired stale job %s (node %s)", id, job.NodeID)
+			}
+		}
+		g.jobsMu.Unlock()
 	}
 }
 
@@ -109,8 +130,14 @@ func (g *Gateway) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if reg.APIKey != apiKey {
+	if subtle.ConstantTimeCompare([]byte(reg.APIKey), []byte(apiKey)) != 1 {
 		http.Error(w, "key mismatch", http.StatusForbidden)
+		return
+	}
+
+	// Validate Lightning address format
+	if reg.LightningAddress != "" && !isValidLightningAddress(reg.LightningAddress) {
+		http.Error(w, "invalid lightning address", http.StatusBadRequest)
 		return
 	}
 
@@ -323,8 +350,8 @@ func (g *Gateway) handleProxyChunk(nc *NodeConn, msg WSMsg) {
 	g.jobsMu.RLock()
 	job, ok := g.pendingJobs[msg.JobID]
 	g.jobsMu.RUnlock()
-	if !ok {
-		return
+	if !ok || job.NodeID != nc.NodeID {
+		return // ignore chunks from wrong node
 	}
 	// Track last chunk for usage extraction
 	if msg.Data != "" {
@@ -340,6 +367,11 @@ func (g *Gateway) handleProxyChunk(nc *NodeConn, msg WSMsg) {
 func (g *Gateway) handleProxyDone(nc *NodeConn, msg WSMsg) {
 	g.jobsMu.Lock()
 	job, ok := g.pendingJobs[msg.JobID]
+	if ok && job.NodeID != nc.NodeID {
+		g.jobsMu.Unlock()
+		log.Printf("routecat: SECURITY — node %s tried to complete job %s owned by %s", nc.NodeID, msg.JobID, job.NodeID)
+		return
+	}
 	if ok {
 		delete(g.pendingJobs, msg.JobID)
 	}
@@ -355,7 +387,7 @@ func (g *Gateway) handleProxyDone(nc *NodeConn, msg WSMsg) {
 	grossUSD, providerMsats, feeMsats := g.bill.Calculate(job.Model, tokensIn, tokensOut, btcPrice)
 
 	now := time.Now()
-	_ = g.db.RecordJob(store.Job{
+	if err := g.db.RecordJob(store.Job{
 		JobID:       job.JobID,
 		NodeID:      job.NodeID,
 		UserKey:     job.UserKey,
@@ -368,7 +400,10 @@ func (g *Gateway) handleProxyDone(nc *NodeConn, msg WSMsg) {
 		Status:      "complete",
 		StartedAt:   job.StartedAt,
 		CompletedAt: &now,
-	})
+	}); err != nil {
+		log.Printf("routecat: CRITICAL — failed to record job %s: %v (node NOT paid)", job.JobID, err)
+		return
+	}
 
 	// Send job_complete to node
 	_ = nc.Send(WSMsg{
@@ -515,6 +550,22 @@ func (g *Gateway) LiveNodeInfos() []router.NodeInfo {
 		nc.mu.Unlock()
 	}
 	return out
+}
+
+// isValidLightningAddress checks basic format: user@domain, no spaces, reasonable length.
+func isValidLightningAddress(addr string) bool {
+	if len(addr) < 5 || len(addr) > 320 {
+		return false
+	}
+	parts := strings.SplitN(addr, "@", 2)
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		return false
+	}
+	// Domain must have at least one dot
+	if !strings.Contains(parts[1], ".") {
+		return false
+	}
+	return true
 }
 
 // globalQueueDepth sums queue depth across all connected nodes.
