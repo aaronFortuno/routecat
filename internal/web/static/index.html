@@ -288,6 +288,13 @@ gateway = <span class="str">https://route.cat</span>
 // Load live stats
 async function loadStats() {
   try {
+    // Gateway stats
+    var sr = await fetch('/v1/stats');
+    var stats = await sr.json();
+    document.getElementById('st-nodes').textContent = stats.nodes_online || 0;
+    document.getElementById('st-btc').textContent = stats.btc_usd ? '$' + Math.round(stats.btc_usd).toLocaleString() : '—';
+
+    // Models
     var r = await fetch('/v1/models');
     var d = await r.json();
     var models = d.data || [];
@@ -304,10 +311,13 @@ async function loadStats() {
       document.getElementById('pricing-body').innerHTML = rows;
     }
 
-    // Playground models
+    // Playground model selector (with pricing)
     var sel = document.getElementById('pg-model');
-    sel.innerHTML = models.map(function(m) {
-      return '<option value="' + m.id + '">' + m.id + '</option>';
+    sel.innerHTML = models.sort(function(a,b) { return a.id.localeCompare(b.id); }).map(function(m) {
+      var p = m.routecat_pricing;
+      var label = m.id;
+      if (p) label += '  (in: $' + p.per_m_input_usd.toFixed(4) + ' / out: $' + p.per_m_output_usd.toFixed(4) + ')';
+      return '<option value="' + m.id + '">' + label + '</option>';
     }).join('');
   } catch(e) {}
 }
@@ -440,11 +450,9 @@ function copyInvoice() {
 showAccountState();
 setInterval(refreshBalance, 15000);
 
-// Playground
-async function ensureKey() {
-  if (_pgKey) return _pgKey;
-  await createKey();
-  return _pgKey;
+// Playground — requires key from Account section
+function ensureKey() {
+  return _pgKey || '';
 }
 
 async function runPlayground() {
@@ -457,8 +465,8 @@ async function runPlayground() {
   btn.disabled = true; btn.textContent = 'Generating...';
   out.textContent = '';
 
-  var key = await ensureKey();
-  if (!key) { out.textContent = 'Error: could not get API key'; btn.disabled = false; btn.textContent = 'Send'; return; }
+  var key = ensureKey();
+  if (!key) { out.textContent = 'Create an API key in the Account section above first.'; btn.disabled = false; btn.textContent = 'Send'; return; }
 
   try {
     var resp = await fetch('/v1/chat/completions', {

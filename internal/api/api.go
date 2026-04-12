@@ -96,13 +96,14 @@ type InvoiceCreator interface {
 
 // API handles public-facing inference requests.
 type API struct {
-	rt        *router.Router
-	bill      *billing.Engine
-	db        *store.DB
-	assign    JobAssigner
-	invoicer  InvoiceCreator
-	regLimit  map[string][]time.Time // IP -> registration timestamps (rate limit)
-	regMu     sync.Mutex
+	rt          *router.Router
+	bill        *billing.Engine
+	db          *store.DB
+	assign      JobAssigner
+	invoicer    InvoiceCreator
+	nodeCounter NodeCounter
+	regLimit    map[string][]time.Time // IP -> registration timestamps (rate limit)
+	regMu       sync.Mutex
 }
 
 // New creates the public API.
@@ -304,6 +305,29 @@ func (a *API) HandleChatCompletions(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// NodeCounter provides live node count.
+type NodeCounter interface {
+	ConnectedNodes() int
+}
+
+// SetNodeCounter wires the gateway for node counting.
+func (a *API) SetNodeCounter(nc NodeCounter) { a.nodeCounter = nc }
+
+// HandleStats serves GET /v1/stats — live gateway statistics.
+func (a *API) HandleStats(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	nodes := 0
+	if a.nodeCounter != nil {
+		nodes = a.nodeCounter.ConnectedNodes()
+	}
+	json.NewEncoder(w).Encode(map[string]any{
+		"nodes_online": nodes,
+		"btc_usd":      a.bill.BtcPrice(),
+		"fee_pct":      a.bill.FeePct(),
+	})
+}
+
 // HandleModels serves GET /v1/models — list of available models with pricing.
 func (a *API) HandleModels(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -317,11 +341,14 @@ func (a *API) HandleModels(w http.ResponseWriter, r *http.Request) {
 
 	// Only show models that are actually available on connected nodes
 	available := a.rt.AvailableModels()
+	fallback := billing.ModelPricing{PerMInputUSD: 0.0005, PerMOutputUSD: 0.001}
 	var models []modelEntry
 	for _, tag := range available {
 		entry := modelEntry{ID: tag, Object: "model"}
 		if p := a.bill.GetPricing(tag); p != nil {
 			entry.Pricing = p
+		} else {
+			entry.Pricing = &fallback
 		}
 		models = append(models, entry)
 	}

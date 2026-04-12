@@ -62,8 +62,9 @@ func main() {
 	pub := api.New(rt, bill, db)
 
 	// Wire dependencies
-	rt.SetSource(gw)       // router reads live node state from gateway
-	pub.SetAssigner(gw)    // API sends jobs via gateway
+	rt.SetSource(gw)        // router reads live node state from gateway
+	pub.SetAssigner(gw)     // API sends jobs via gateway
+	pub.SetNodeCounter(gw)  // API reads node count from gateway
 	if ln != nil {
 		pub.SetInvoicer(ln)    // API creates invoices via LND
 		lightning.NewInvoiceWatcher(db, ln) // check paid invoices every 5s

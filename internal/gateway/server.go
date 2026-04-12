@@ -36,6 +36,7 @@ func NewServer(addr string, gw *Gateway, pub *api.API, ln lightning.Client) *Ser
 	// Public API (for users/buyers — OpenAI compatible)
 	mux.HandleFunc("/v1/chat/completions", pub.HandleChatCompletions)
 	mux.HandleFunc("/v1/models", pub.HandleModels)
+	mux.HandleFunc("/v1/stats", pub.HandleStats)
 	mux.HandleFunc("/v1/auth/register", pub.HandleRegisterUser)
 	mux.HandleFunc("/v1/auth/topup", pub.HandleTopUp)
 	mux.HandleFunc("/v1/auth/balance", pub.HandleBalance)
