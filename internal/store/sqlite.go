@@ -364,6 +364,19 @@ func (d *DB) RecentJobs(limit int) ([]AuditJob, error) {
 	return out, nil
 }
 
+// NodeKarma returns free tier jobs served and a karma score for a node.
+// Karma = free_tier_jobs * 10 + total_jobs (last 30 days).
+func (d *DB) NodeKarma(nodeID string) (freeTierJobs int, karmaScore int64, err error) {
+	err = d.db.QueryRow(`SELECT COALESCE(SUM(CASE WHEN free_tier THEN 1 ELSE 0 END), 0) FROM jobs WHERE node_id=? AND status='complete'`, nodeID).Scan(&freeTierJobs)
+	if err != nil {
+		return
+	}
+	var totalJobs30d int
+	d.db.QueryRow(`SELECT COUNT(*) FROM jobs WHERE node_id=? AND status='complete' AND started_at >= datetime('now', '-30 days')`, nodeID).Scan(&totalJobs30d)
+	karmaScore = int64(freeTierJobs*10 + totalJobs30d)
+	return
+}
+
 // NodeWithdrawHistory returns the last N payouts for a node.
 func (d *DB) NodeWithdrawHistory(nodeID string, limit int) ([]Payout, error) {
 	rows, err := d.db.Query(`SELECT id, node_id, amount_msats, payment_hash, status, created_at FROM payouts WHERE node_id=? AND status='confirmed' ORDER BY created_at DESC LIMIT ?`, nodeID, limit)

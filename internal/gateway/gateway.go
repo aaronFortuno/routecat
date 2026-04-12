@@ -316,6 +316,10 @@ func (g *Gateway) handleHeartbeat(nc *NodeConn, msg WSMsg) {
 
 	btcPrice := g.bill.BtcPrice()
 
+	// Karma: based on free tier jobs served
+	freeTierJobs, karmaScore, _ := g.db.NodeKarma(nc.NodeID)
+	karmaTier := karmaLevel(karmaScore)
+
 	ack := WSMsg{
 		Type:             "heartbeat_ack",
 		Status:           "registered",
@@ -328,7 +332,13 @@ func (g *Gateway) handleHeartbeat(nc *NodeConn, msg WSMsg) {
 		BtcLiveUsd:       btcPrice,
 		BtcPriceStatus:   "normal",
 		WithdrawHistory:  wdHist,
+		KarmaScore:       karmaScore,
+		KarmaTier:        karmaTier,
+		FreeTierJobs:     freeTierJobs,
 	}
+
+	log.Printf("routecat: heartbeat %s — jobs=%d tokens=%d earned=%d balance=%d karma=%d(%s)",
+		nc.NodeID[:8], jobsToday, tokensToday, earnedTotal, balance, karmaScore, karmaTier)
 
 	if err := nc.Send(ack); err != nil {
 		log.Printf("routecat: heartbeat_ack %s: %v", nc.NodeID, err)
@@ -585,6 +595,22 @@ func (g *Gateway) LiveNodeInfos() []router.NodeInfo {
 		nc.mu.Unlock()
 	}
 	return out
+}
+
+// karmaLevel returns a tier string based on karma score.
+func karmaLevel(score int64) string {
+	switch {
+	case score >= 10000:
+		return "diamond"
+	case score >= 5000:
+		return "gold"
+	case score >= 1000:
+		return "silver"
+	case score >= 100:
+		return "bronze"
+	default:
+		return ""
+	}
 }
 
 // isValidLightningAddress checks basic format: user@domain, no spaces, reasonable length.
