@@ -6,7 +6,7 @@
 <title>RouteCat — Open-Source AI Inference Gateway</title>
 <meta name="description" content="Decentralized, transparent AI inference powered by community GPUs. Pay with Lightning. 100% open source.">
 <style>
-  :root { --bg: #0a0a0f; --bg2: #12121a; --border: #1e1e2e; --text: #e4e4ef; --dim: #8888a0; --accent: #f59e0b; --green: #22c55e; --cat: #e879f9; }
+  :root { --bg: #0a0a0f; --bg2: #12121a; --border: #1e1e2e; --text: #e4e4ef; --dim: #8888a0; --accent: #f59e0b; --green: #22c55e; --cat: #f59e0b; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.6; }
   a { color: var(--accent); text-decoration: none; }
@@ -16,8 +16,8 @@
   nav { display: flex; justify-content: space-between; align-items: center; padding: 18px 36px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(10,10,15,0.95); backdrop-filter: blur(10px); z-index: 100; }
   .nav-logo { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
   .nav-logo span { color: var(--cat); }
-  .logo-img { height: 36px; filter: invert(1); mix-blend-mode: screen; }
-  .hero-logo { height: 160px; filter: invert(1); mix-blend-mode: screen; margin-bottom: 20px; }
+  .logo-img { height: 36px; filter: invert(1); }
+  .hero-logo { height: 160px; filter: invert(1); margin-bottom: 20px; }
   .nav-links { display: flex; gap: 24px; font-size: 15px; }
   .nav-links a { color: var(--dim); }
   .nav-links a:hover { color: var(--text); text-decoration: none; }
@@ -85,7 +85,7 @@
 <body>
 
 <nav>
-  <div class="nav-logo"><img src="/logo.png" alt="RouteCat" class="logo-img"> route<span>cat</span></div>
+  <div class="nav-logo"><img src="/logo.svg" alt="RouteCat" class="logo-img"> route<span>cat</span></div>
   <div class="nav-links">
     <a href="#features">Features</a>
     <a href="#pricing">Pricing</a>
@@ -97,7 +97,7 @@
 </nav>
 
 <div class="hero">
-  <img src="/logo.png" alt="RouteCat" class="hero-logo">
+  <img src="/logo.svg" alt="RouteCat" class="hero-logo">
   <h1>AI inference,<br><em>routed openly</em></h1>
   <p>Decentralized inference gateway powered by community GPUs. Transparent billing, Lightning payments, 100% open source.</p>
   <div class="hero-btns">
@@ -226,7 +226,7 @@ response = client.chat.completions.create(
       <button class="btn btn-outline" onclick="dismissKeyReveal()" style="margin-top:12px;width:100%">I've saved my key — continue</button>
     </div>
     <div id="acct-has-key" style="display:none">
-      <div class="stat" style="margin-bottom:8px"><span class="stat-label">API Key</span><span class="stat-value" id="acct-key" style="font-family:monospace;font-size:13px;color:var(--dim);word-break:break-all;max-width:400px;text-align:right"></span></div>
+      <div class="stat" style="margin-bottom:8px"><span class="stat-label">API Key</span><span style="display:flex;align-items:center;gap:8px"><span class="stat-value" id="acct-key" style="font-family:monospace;font-size:13px;color:var(--dim)"></span><button onclick="logout()" style="background:none;border:1px solid var(--border);color:var(--dim);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px">Logout</button></span></div>
       <div class="stat" style="margin-bottom:8px"><span class="stat-label">Balance</span><span class="stat-value" id="acct-balance" style="color:var(--green);font-weight:700">0 sats</span></div>
       <div class="stat" style="margin-bottom:16px"><span class="stat-label">Free requests remaining</span><span class="stat-value" id="acct-free">-</span></div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -281,7 +281,7 @@ gateway = <span class="str">https://route.cat</span>
 
 <footer>
   <p>RouteCat is <a href="https://github.com/aaronFortuno/routecat">open source</a> under MIT license. Built with Go, Lightning, and community GPUs.</p>
-  <p style="margin-top:8px"><img src="/logo.png" alt="RouteCat" style="height:24px;filter:invert(1);mix-blend-mode:screen;vertical-align:middle"> route.cat</p>
+  <p style="margin-top:8px"><img src="/logo.svg" alt="RouteCat" style="height:24px;filter:invert(1);mix-blend-mode:screen;vertical-align:middle"> route.cat</p>
 </footer>
 
 <script>
@@ -326,7 +326,16 @@ function showAccountState() {
     document.getElementById('acct-has-key').style.display = '';
     document.getElementById('acct-key').textContent = maskKey(_pgKey);
     refreshBalance();
+  } else {
+    document.getElementById('acct-no-key').style.display = '';
+    document.getElementById('acct-has-key').style.display = 'none';
   }
+}
+
+function logout() {
+  _pgKey = '';
+  localStorage.removeItem('routecat-key');
+  showAccountState();
 }
 
 async function createKey() {
@@ -385,6 +394,11 @@ async function refreshBalance() {
   if (!_pgKey) return;
   try {
     var r = await fetch('/v1/auth/balance', {headers:{'Authorization':'Bearer ' + _pgKey}});
+    if (!r.ok) {
+      // Key no longer valid on server — auto logout
+      logout();
+      return;
+    }
     var d = await r.json();
     document.getElementById('acct-balance').textContent = (d.balance_sats || 0) + ' sats';
     document.getElementById('acct-free').textContent = d.free_remaining;
