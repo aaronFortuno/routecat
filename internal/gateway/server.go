@@ -9,6 +9,7 @@ import (
 
 	"github.com/aaronFortuno/routecat/internal/api"
 	"github.com/aaronFortuno/routecat/internal/lightning"
+	"github.com/aaronFortuno/routecat/internal/web"
 )
 
 // Server is the main HTTP server hosting the gateway WS, public API, and frontend.
@@ -37,8 +38,8 @@ func NewServer(addr string, gw *Gateway, pub *api.API, ln lightning.Client) *Ser
 	mux.HandleFunc("/v1/models", pub.HandleModels)
 	mux.HandleFunc("/v1/auth/register", pub.HandleRegisterUser)
 
-	// Frontend
-	mux.HandleFunc("/", serveWeb)
+	// Frontend (embedded static files)
+	mux.Handle("/", web.Handler())
 
 	// Security: rate limit 60 req/min per IP, 1MB max body
 	rl := NewRateLimiter(60, time.Minute)
@@ -70,8 +71,3 @@ func (s *Server) Stop() {
 	}
 }
 
-func serveWeb(w http.ResponseWriter, r *http.Request) {
-	// TODO: serve frontend from web/static/ or embedded FS
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write([]byte("<h1>RouteCat</h1><p>Open-source AI inference gateway</p>")) //nolint:errcheck
-}

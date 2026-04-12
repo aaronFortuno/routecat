@@ -355,7 +355,14 @@ func (g *Gateway) handleProxyChunk(nc *NodeConn, msg WSMsg) {
 	}
 	// Track chunk containing usage stats for billing
 	if strings.Contains(msg.Data, "\"usage\"") {
-		job.LastChunk = msg.Data
+		// Extract just the SSE data line containing usage
+		for _, line := range strings.Split(msg.Data, "\n") {
+			if strings.Contains(line, "\"usage\"") {
+				job.LastChunk = line
+				break
+			}
+		}
+		log.Printf("routecat: [debug] job %s usage chunk captured: %s", msg.JobID, job.LastChunk)
 	}
 	select {
 	case job.ResponseCh <- []byte(msg.Data):
@@ -417,25 +424,29 @@ func (g *Gateway) handleProxyDone(nc *NodeConn, msg WSMsg) {
 		job.JobID, tokensIn, tokensOut, grossUSD, providerMsats, feeMsats)
 }
 
-// parseUsage extracts prompt_tokens and completion_tokens from an SSE data line.
-// Ollama sends usage in the final chunk: data: {"usage":{"prompt_tokens":N,"completion_tokens":N,...}}
+// parseUsage extracts prompt_tokens and completion_tokens from SSE data.
+// Handles multiple formats: raw JSON, "data: {json}", or multi-line SSE.
 func parseUsage(sseData string) (tokensIn, tokensOut int) {
-	// Strip "data: " prefix if present
-	data := strings.TrimPrefix(sseData, "data: ")
-	data = strings.TrimSpace(data)
-	if data == "" || data == "[DONE]" {
-		return 0, 0
+	// Try each line — usage might be in any of them
+	for _, line := range strings.Split(sseData, "\n") {
+		line = strings.TrimSpace(line)
+		line = strings.TrimPrefix(line, "data: ")
+		line = strings.TrimPrefix(line, "data:")
+		line = strings.TrimSpace(line)
+		if line == "" || line == "[DONE]" || !strings.Contains(line, "usage") {
+			continue
+		}
+		var chunk struct {
+			Usage *struct {
+				PromptTokens     int `json:"prompt_tokens"`
+				CompletionTokens int `json:"completion_tokens"`
+			} `json:"usage,omitempty"`
+		}
+		if err := json.Unmarshal([]byte(line), &chunk); err == nil && chunk.Usage != nil {
+			return chunk.Usage.PromptTokens, chunk.Usage.CompletionTokens
+		}
 	}
-	var chunk struct {
-		Usage *struct {
-			PromptTokens     int `json:"prompt_tokens"`
-			CompletionTokens int `json:"completion_tokens"`
-		} `json:"usage,omitempty"`
-	}
-	if err := json.Unmarshal([]byte(data), &chunk); err != nil || chunk.Usage == nil {
-		return 0, 0
-	}
-	return chunk.Usage.PromptTokens, chunk.Usage.CompletionTokens
+	return 0, 0
 }
 
 // HandleJobProxy serves GET /v1/gateway/jobs/{job_id}/proxy/request.

@@ -1,5 +1,18 @@
-// Package web will serve the RouteCat frontend: landing page, docs,
-// playground, network stats, and provider/user dashboards.
-// For now this is a placeholder — the frontend will be built after
-// the backend is functional.
+// Package web serves the RouteCat public frontend: landing page, API docs,
+// pricing, and a playground for testing models.
 package web
+
+import (
+	"embed"
+	"io/fs"
+	"net/http"
+)
+
+//go:embed static/*
+var staticFS embed.FS
+
+// Handler returns an HTTP handler serving the embedded static frontend.
+func Handler() http.Handler {
+	sub, _ := fs.Sub(staticFS, "static")
+	return http.FileServer(http.FS(sub))
+}
