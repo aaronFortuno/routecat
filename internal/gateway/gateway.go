@@ -353,8 +353,8 @@ func (g *Gateway) handleProxyChunk(nc *NodeConn, msg WSMsg) {
 	if !ok || job.NodeID != nc.NodeID {
 		return // ignore chunks from wrong node
 	}
-	// Track last chunk for usage extraction
-	if msg.Data != "" {
+	// Track chunk containing usage stats for billing
+	if strings.Contains(msg.Data, "\"usage\"") {
 		job.LastChunk = msg.Data
 	}
 	select {
