@@ -1,0 +1,29 @@
+[Unit]
+Description=RouteCat — open-source AI inference gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=routecat
+Group=routecat
+WorkingDirectory=/opt/routecat
+ExecStart=/opt/routecat/routecat \
+    -addr :8080 \
+    -db /opt/routecat/data/routecat.db \
+    -fee 5.0 \
+    -lnd-addr 100.x.x.x:8080 \
+    -lnd-macaroon /opt/routecat/lnd/admin.macaroon \
+    -lnd-tls /opt/routecat/lnd/tls.cert
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/routecat/data
+
+[Install]
+WantedBy=multi-user.target

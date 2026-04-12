@@ -65,6 +65,12 @@ func main() {
 	rt.SetSource(gw)       // router reads live node state from gateway
 	pub.SetAssigner(gw)    // API sends jobs via gateway
 
+	// Payout engine (if LND connected)
+	if ln != nil {
+		lightning.NewPayoutEngine(db, ln, 10000) // max 10,000 sats/hour safety cap
+		log.Printf("routecat: payout engine started (cap: 10,000 sats/hour)")
+	}
+
 	// HTTP server
 	srv := gateway.NewServer(*addr, gw, pub, ln)
 	if err := srv.Start(); err != nil {

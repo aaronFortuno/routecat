@@ -203,6 +203,33 @@ func (d *DB) NodeJobsToday(nodeID string) (jobs int, tokens int, err error) {
 	return
 }
 
+// ValidateUserKey checks if a user API key exists and returns remaining daily quota.
+func (d *DB) ValidateUserKey(key string) (userID string, remaining int, err error) {
+	var quotaDaily int
+	err = d.db.QueryRow(`SELECT user_id, quota_daily FROM api_keys WHERE key=?`, key).Scan(&userID, &quotaDaily)
+	if err != nil {
+		return "", 0, err
+	}
+	var usedToday int
+	d.db.QueryRow(`SELECT COUNT(*) FROM jobs WHERE user_key=? AND date(started_at)=date('now')`, key).Scan(&usedToday)
+	remaining = quotaDaily - usedToday
+	return userID, remaining, nil
+}
+
+// CreateUserKey inserts a new user API key.
+func (d *DB) CreateUserKey(key, userID, name string, quotaDaily int) error {
+	_, err := d.db.Exec(`INSERT INTO api_keys (key, user_id, name, quota_daily) VALUES (?, ?, ?, ?)`,
+		key, userID, name, quotaDaily)
+	return err
+}
+
+// RecordPayout inserts a payout record.
+func (d *DB) RecordPayout(nodeID string, amountMsats int64, paymentHash, status string) error {
+	_, err := d.db.Exec(`INSERT INTO payouts (node_id, amount_msats, payment_hash, status, confirmed_at) VALUES (?, ?, ?, ?, ?)`,
+		nodeID, amountMsats, paymentHash, status, time.Now().UTC())
+	return err
+}
+
 // PendingPayouts returns nodes whose balance exceeds their redeem threshold.
 func (d *DB) PendingPayouts() ([]Node, error) {
 	rows, err := d.db.Query(`

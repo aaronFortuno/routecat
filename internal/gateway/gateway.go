@@ -42,6 +42,7 @@ type PendingJob struct {
 	DoneCh      chan struct{}      // closed on proxy_done
 	FreeTier    bool
 	StartedAt   time.Time
+	LastChunk   string            // last SSE data line (may contain usage)
 }
 
 // NodeConn represents a connected provider node with live state.
@@ -325,11 +326,13 @@ func (g *Gateway) handleProxyChunk(nc *NodeConn, msg WSMsg) {
 	if !ok {
 		return
 	}
-	// Non-blocking send to buyer's response channel
+	// Track last chunk for usage extraction
+	if msg.Data != "" {
+		job.LastChunk = msg.Data
+	}
 	select {
 	case job.ResponseCh <- []byte(msg.Data):
 	default:
-		// buyer disconnected or channel full — drop chunk
 	}
 }
 
@@ -345,10 +348,59 @@ func (g *Gateway) handleProxyDone(nc *NodeConn, msg WSMsg) {
 		return
 	}
 	close(job.DoneCh)
-	log.Printf("routecat: job %s complete from %s", msg.JobID, nc.NodeID)
 
-	// TODO: parse final SSE chunk for usage (tokens_in, tokens_out),
-	// calculate billing, send job_complete to node, record in DB
+	// Extract token usage from last SSE chunk
+	tokensIn, tokensOut := parseUsage(job.LastChunk)
+	btcPrice := g.bill.BtcPrice()
+	grossUSD, providerMsats, feeMsats := g.bill.Calculate(job.Model, tokensIn, tokensOut, btcPrice)
+
+	now := time.Now()
+	_ = g.db.RecordJob(store.Job{
+		JobID:       job.JobID,
+		NodeID:      job.NodeID,
+		UserKey:     job.UserKey,
+		Model:       job.Model,
+		TokensIn:    tokensIn,
+		TokensOut:   tokensOut,
+		EarnedMsats: providerMsats,
+		FeeMsats:    feeMsats,
+		FreeTier:    job.FreeTier,
+		Status:      "complete",
+		StartedAt:   job.StartedAt,
+		CompletedAt: &now,
+	})
+
+	// Send job_complete to node
+	_ = nc.Send(WSMsg{
+		Type:      "job_complete",
+		Model:     job.Model,
+		Tokens:    tokensIn + tokensOut,
+		EarnedUSD: grossUSD * (1 - g.bill.FeePct()/100),
+	})
+
+	log.Printf("routecat: job %s complete — %d+%d tokens, $%.6f (provider: %d msats, fee: %d msats)",
+		job.JobID, tokensIn, tokensOut, grossUSD, providerMsats, feeMsats)
+}
+
+// parseUsage extracts prompt_tokens and completion_tokens from an SSE data line.
+// Ollama sends usage in the final chunk: data: {"usage":{"prompt_tokens":N,"completion_tokens":N,...}}
+func parseUsage(sseData string) (tokensIn, tokensOut int) {
+	// Strip "data: " prefix if present
+	data := strings.TrimPrefix(sseData, "data: ")
+	data = strings.TrimSpace(data)
+	if data == "" || data == "[DONE]" {
+		return 0, 0
+	}
+	var chunk struct {
+		Usage *struct {
+			PromptTokens     int `json:"prompt_tokens"`
+			CompletionTokens int `json:"completion_tokens"`
+		} `json:"usage,omitempty"`
+	}
+	if err := json.Unmarshal([]byte(data), &chunk); err != nil || chunk.Usage == nil {
+		return 0, 0
+	}
+	return chunk.Usage.PromptTokens, chunk.Usage.CompletionTokens
 }
 
 // HandleJobProxy serves GET /v1/gateway/jobs/{job_id}/proxy/request.

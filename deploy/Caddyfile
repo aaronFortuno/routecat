@@ -1,0 +1,25 @@
+route.cat {
+    reverse_proxy localhost:8080
+
+    # WebSocket support for provider nodes
+    @ws {
+        path /v1/gateway/ws
+    }
+    reverse_proxy @ws localhost:8080 {
+        header_up Connection {http.request.header.Connection}
+        header_up Upgrade {http.request.header.Upgrade}
+    }
+
+    # Security headers
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+
+    # Logging
+    log {
+        output file /var/log/caddy/routecat.log
+        format json
+    }
+}

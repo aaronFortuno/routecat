@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/aaronFortuno/routecat/internal/api"
 	"github.com/aaronFortuno/routecat/internal/lightning"
@@ -34,16 +35,21 @@ func NewServer(addr string, gw *Gateway, pub *api.API, ln lightning.Client) *Ser
 	// Public API (for users/buyers — OpenAI compatible)
 	mux.HandleFunc("/v1/chat/completions", pub.HandleChatCompletions)
 	mux.HandleFunc("/v1/models", pub.HandleModels)
+	mux.HandleFunc("/v1/auth/register", pub.HandleRegisterUser)
 
 	// Frontend
 	mux.HandleFunc("/", serveWeb)
+
+	// Security: rate limit 60 req/min per IP, 1MB max body
+	rl := NewRateLimiter(60, time.Minute)
+	handler := SecurityMiddleware(rl, 1<<20, mux)
 
 	return &Server{
 		addr: addr,
 		gw:   gw,
 		api:  pub,
 		ln:   ln,
-		srv:  &http.Server{Handler: mux},
+		srv:  &http.Server{Handler: handler},
 	}
 }
 

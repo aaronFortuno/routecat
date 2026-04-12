@@ -8,11 +8,52 @@ import (
 	"net/http"
 	"strings"
 
+	"crypto/rand"
+	"encoding/hex"
+
 	"github.com/aaronFortuno/routecat/internal/billing"
 	"github.com/aaronFortuno/routecat/internal/router"
 	"github.com/aaronFortuno/routecat/internal/store"
 	"github.com/google/uuid"
 )
+
+// HandleRegisterUser creates a new user API key.
+// POST /v1/auth/register with {"name": "my app"}
+func (a *API) HandleRegisterUser(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"invalid JSON"}`, http.StatusBadRequest)
+		return
+	}
+	if req.Name == "" {
+		req.Name = "default"
+	}
+
+	// Generate API key
+	b := make([]byte, 24)
+	rand.Read(b)
+	key := "rc_" + hex.EncodeToString(b)
+	userID := uuid.New().String()
+
+	if err := a.db.CreateUserKey(key, userID, req.Name, 100); err != nil {
+		http.Error(w, `{"error":"failed to create key"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		"api_key":     key,
+		"user_id":     userID,
+		"name":        req.Name,
+		"quota_daily": 100,
+	})
+}
 
 // JobAssigner sends a job to a node and returns a pending job handle.
 type JobAssigner interface {
@@ -50,7 +91,16 @@ func (a *API) HandleChatCompletions(w http.ResponseWriter, r *http.Request) {
 	}
 	userKey := strings.TrimPrefix(auth, "Bearer ")
 
-	// TODO: validate user key against api_keys table, check quota
+	// Validate user key and quota
+	_, remaining, err := a.db.ValidateUserKey(userKey)
+	if err != nil {
+		http.Error(w, `{"error":{"message":"invalid API key","type":"invalid_request_error"}}`, http.StatusUnauthorized)
+		return
+	}
+	if remaining <= 0 {
+		http.Error(w, `{"error":{"message":"daily quota exceeded","type":"rate_limit_error"}}`, http.StatusTooManyRequests)
+		return
+	}
 
 	// Read request body
 	body, err := io.ReadAll(r.Body)

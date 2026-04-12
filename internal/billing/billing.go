@@ -16,6 +16,7 @@ type ModelPricing struct {
 type Engine struct {
 	db     *store.DB
 	feePct float64 // gateway fee percentage (e.g. 5.0 for 5%)
+	prices *PriceTracker
 
 	// pricing is loaded at startup and refreshed periodically.
 	pricing map[string]ModelPricing // model tag -> pricing
@@ -26,9 +27,13 @@ func New(db *store.DB, feePct float64) *Engine {
 	return &Engine{
 		db:      db,
 		feePct:  feePct,
+		prices:  NewPriceTracker(),
 		pricing: defaultPricing(),
 	}
 }
+
+// BtcPrice returns the current BTC/USD price.
+func (e *Engine) BtcPrice() float64 { return e.prices.Price() }
 
 // FeePct returns the current gateway fee percentage.
 func (e *Engine) FeePct() float64 { return e.feePct }
