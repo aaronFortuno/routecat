@@ -98,8 +98,8 @@
 
 <div class="hero">
   <img src="/logo.svg" alt="RouteCat" class="hero-logo">
-  <h1>AI inference,<br><em>routed openly</em></h1>
-  <p>Decentralized inference gateway powered by community GPUs. Transparent billing, Lightning payments, 100% open source.</p>
+  <h1 data-i18n="hero.title">AI inference,<br><em>routed openly</em></h1>
+  <p data-i18n="hero.sub">Decentralized inference gateway powered by community GPUs. Transparent billing, Lightning payments, 100% open source.</p>
   <div class="hero-btns">
     <a href="#playground" class="btn btn-primary">Try it now</a>
     <a href="#api" class="btn btn-outline">API docs</a>
@@ -116,8 +116,8 @@
 </div>
 
 <section id="features">
-  <h2>Why RouteCat?</h2>
-  <p class="subtitle">Everything a closed gateway does, but you can read every line of code.</p>
+  <h2 data-i18n="feat.title">Why RouteCat?</h2>
+  <p class="subtitle" data-i18n="feat.sub">Everything a closed gateway does, but you can read every line of code.</p>
   <div class="features">
     <div class="feature">
       <div class="feature-icon">🔓</div>
@@ -158,8 +158,8 @@
 </section>
 
 <section id="privacy" style="text-align:center;padding:60px 36px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--bg2)">
-  <h2 style="margin-bottom:16px">Your prompts are yours</h2>
-  <p style="color:var(--dim);font-size:18px;max-width:700px;margin:0 auto 24px;line-height:1.7">RouteCat acts as a privacy proxy between you and the inference nodes. We don't store, log, or inspect your prompts or responses. Provider nodes never see your identity — they only receive the raw inference request. No emails, no sign-ups, no cookies. Your API key is the only link to your account, and it's generated locally with no personal data attached.</p>
+  <h2 style="margin-bottom:16px" data-i18n="priv.title">Your prompts are yours</h2>
+  <p style="color:var(--dim);font-size:18px;max-width:700px;margin:0 auto 24px;line-height:1.7" data-i18n="priv.body">RouteCat acts as a privacy proxy between you and the inference nodes. We don't store, log, or inspect your prompts or responses. Provider nodes never see your identity — they only receive the raw inference request. No emails, no sign-ups, no cookies. Your API key is the only link to your account, and it's generated locally with no personal data attached.</p>
   <div style="display:flex;justify-content:center;gap:36px;flex-wrap:wrap;color:var(--dim);font-size:15px">
     <span>&#10003; No prompt logging</span>
     <span>&#10003; No user tracking</span>
@@ -286,20 +286,70 @@ response = client.chat.completions.create(
 <section id="providers">
   <h2>Run a node</h2>
   <p class="subtitle">Got a GPU? Earn Bitcoin by serving inference.</p>
-  <div class="code-block">
-<span class="comment"># Install Owlrun (compatible provider client)</span>
-<span class="cmd">curl</span> -fsSL https://route.cat/install.sh | bash
-
-<span class="comment"># Or configure an existing Owlrun node:</span>
-<span class="comment"># Edit ~/.owlrun/owlrun.conf</span>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
+    <div class="feature">
+      <h3 style="margin-bottom:8px">Quick start</h3>
+      <p style="font-size:14px;color:var(--dim);line-height:1.6">1. Install <a href="https://ollama.com">Ollama</a> and pull a model<br>2. Install <a href="https://github.com/aaronFortuno/owlrun">Owlrun</a> (our fork with multi-language dashboard)<br>3. Edit <code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-size:13px">~/.owlrun/owlrun.conf</code><br>4. Restart — start earning sats</p>
+    </div>
+    <div class="feature">
+      <h3 style="margin-bottom:8px">Configuration</h3>
+      <div class="code-block" style="margin:0;font-size:13px">
+<span class="comment"># ~/.owlrun/owlrun.conf</span>
 [marketplace]
 gateway = <span class="str">https://route.cat</span>
+
+[account]
+lightning_address = <span class="str">you@wallet.com</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <h2>FAQ</h2>
+  <div style="max-width:800px">
+    <details style="margin-bottom:12px;padding:16px 20px;background:var(--bg2);border:1px solid var(--border);border-radius:10px">
+      <summary style="cursor:pointer;font-weight:600;font-size:16px;color:var(--text)">How does RouteCat protect my privacy?</summary>
+      <p style="margin-top:10px;color:var(--dim);line-height:1.7">RouteCat acts as a proxy between you and the inference nodes. Your prompts and responses are forwarded in real time and never stored. Provider nodes only see the raw model request — they don't know who you are. No emails, no cookies, no tracking. Your API key is your only identity, and it carries no personal information.</p>
+    </details>
+    <details style="margin-bottom:12px;padding:16px 20px;background:var(--bg2);border:1px solid var(--border);border-radius:10px">
+      <summary style="cursor:pointer;font-weight:600;font-size:16px;color:var(--text)">How can I verify the gateway is honest?</summary>
+      <p style="margin-top:10px;color:var(--dim);line-height:1.7">Three ways: (1) The code is <a href="https://github.com/aaronFortuno/routecat">open source</a> — read it yourself. (2) The <code>/v1/stats</code> endpoint shows the exact git commit hash of the running binary — you can rebuild from source and compare. (3) The <code>/v1/audit</code> endpoint shows all completed jobs with token counts, earnings, and fees — no hidden charges.</p>
+    </details>
+    <details style="margin-bottom:12px;padding:16px 20px;background:var(--bg2);border:1px solid var(--border);border-radius:10px">
+      <summary style="cursor:pointer;font-weight:600;font-size:16px;color:var(--text)">How are providers paid?</summary>
+      <p style="margin-top:10px;color:var(--dim);line-height:1.7">Providers set a Lightning address and a payout threshold (in sats). When their earned balance exceeds the threshold, the gateway automatically sends a Lightning payment. Providers keep 95% of every job — the gateway takes a flat 5% fee. All payouts are verifiable on-chain via the payment hash.</p>
+    </details>
+    <details style="margin-bottom:12px;padding:16px 20px;background:var(--bg2);border:1px solid var(--border);border-radius:10px">
+      <summary style="cursor:pointer;font-weight:600;font-size:16px;color:var(--text)">How do I pay for API access?</summary>
+      <p style="margin-top:10px;color:var(--dim);line-height:1.7">Create an API key (free, 10 playground requests/day). For API access, top up your balance by paying a Lightning invoice — any amount from 10 to 100,000 sats. Your balance is deducted per-token based on the model's pricing. No subscriptions, no minimum commitments.</p>
+    </details>
+    <details style="margin-bottom:12px;padding:16px 20px;background:var(--bg2);border:1px solid var(--border);border-radius:10px">
+      <summary style="cursor:pointer;font-weight:600;font-size:16px;color:var(--text)">What happens if I lose my API key?</summary>
+      <p style="margin-top:10px;color:var(--dim);line-height:1.7">Your API key is shown only once when you create it. If you lose it, you lose access to any remaining balance. There is no recovery mechanism — this is by design, as we don't collect any personal data to verify your identity. Always save your key securely.</p>
+    </details>
+    <details style="margin-bottom:12px;padding:16px 20px;background:var(--bg2);border:1px solid var(--border);border-radius:10px">
+      <summary style="cursor:pointer;font-weight:600;font-size:16px;color:var(--text)">Is RouteCat compatible with OpenAI SDKs?</summary>
+      <p style="margin-top:10px;color:var(--dim);line-height:1.7">Yes. Set <code>base_url="https://route.cat/v1"</code> and your API key in any OpenAI-compatible client (Python, Node.js, curl). Streaming, chat completions, and model listing all work the same way.</p>
+    </details>
   </div>
 </section>
 
 <footer>
-  <p>RouteCat is <a href="https://github.com/aaronFortuno/routecat">open source</a> under MIT license. Built with Go, Lightning, and community GPUs.</p>
-  <p style="margin-top:8px"><img src="/logo.svg" alt="RouteCat" style="height:24px;filter:invert(1);mix-blend-mode:screen;vertical-align:middle"> route.cat</p>
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;max-width:900px;margin:0 auto">
+    <div>
+      <p>RouteCat is <a href="https://github.com/aaronFortuno/routecat">open source</a> under MIT license.</p>
+      <p style="margin-top:4px"><img src="/logo.svg" alt="RouteCat" style="height:20px;filter:invert(1);vertical-align:middle"> route.cat</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:13px">Language:</span>
+      <select id="lang-select" onchange="switchLang(this.value)" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:13px;cursor:pointer">
+        <option value="en">English</option>
+        <option value="ca">Catal&agrave;</option>
+        <option value="es">Espa&ntilde;ol</option>
+      </select>
+    </div>
+  </div>
 </footer>
 
 <script>
@@ -536,6 +586,76 @@ async function runPlayground() {
   }
   btn.disabled = false; btn.textContent = 'Send';
 }
+
+// ── i18n ──────────────────────────────────────────────────────
+var _i18n = {
+  ca: {
+    "hero.title": "Infer\u00e8ncia IA,<br><em>enrutada obertament</em>",
+    "hero.sub": "Passarel\u00b7la d'infer\u00e8ncia descentralitzada impulsada per GPUs comunit\u00e0ries. Facturaci\u00f3 transparent, pagaments Lightning, 100% codi obert.",
+    "stats.nodes": "Nodes en l\u00ednia", "stats.models": "Models disponibles", "stats.jobs": "Treballs (24h)", "stats.tokens": "Tokens (24h)", "stats.fee": "Comissi\u00f3",
+    "feat.title": "Per qu\u00e8 RouteCat?", "feat.sub": "Tot el que fa una passarel\u00b7la tancada, per\u00f2 pots llegir cada l\u00ednia de codi.",
+    "feat.open.t": "Totalment codi obert", "feat.open.p": "Passarel\u00b7la, facturaci\u00f3, enrutament \u2014 tot p\u00fablic a GitHub.",
+    "feat.ln.t": "Pagaments Lightning", "feat.ln.p": "Els prove\u00efdors guanyen sats autom\u00e0ticament. Els usuaris paguen per token.",
+    "feat.route.t": "Enrutament intel\u00b7ligent", "feat.route.p": "Les peticions s'enruten al millor node per model, VRAM i regi\u00f3.",
+    "feat.bill.t": "Facturaci\u00f3 transparent", "feat.bill.p": "Preu per token, 5% de comissi\u00f3, cada treball registrat.",
+    "feat.api.t": "Compatible amb OpenAI", "feat.api.p": "Substituci\u00f3 directa. Canvia la base_url i funciona.",
+    "feat.priv.t": "Privacitat primer", "feat.priv.p": "No registrem els teus prompts. Els nodes no saben qui ets. Sense emails, sense cookies.",
+    "feat.comm.t": "Impulsat per la comunitat", "feat.comm.p": "Qualsevol amb una GPU pot unir-se. Guanya Bitcoin amb la computaci\u00f3 ociosa.",
+    "priv.title": "Els teus prompts s\u00f3n teus",
+    "priv.body": "RouteCat actua com a proxy de privacitat entre tu i els nodes d'infer\u00e8ncia. No emmagatzemem, registrem ni inspeccionem els teus prompts o respostes. Els nodes prove\u00efdors mai veuen la teva identitat. Sense emails, sense registres, sense cookies. La teva clau API \u00e9s l'\u00fanica connexi\u00f3 amb el teu compte.",
+    "pricing.title": "Preus", "pricing.sub": "Paga per token. Els prove\u00efdors es queden el 95%, la passarel\u00b7la es queda el 5%.",
+    "pricing.note": "10 peticions gratu\u00eftes al playground. Recarrega amb Lightning per acc\u00e9s API.",
+    "faq.title": "Preguntes freq\u00fcents",
+    "account.title": "El teu compte", "account.sub": "Obt\u00e9 una clau API. Recarrega amb Lightning. Consulta el teu saldo.",
+    "pg.title": "Playground", "pg.sub": "Prova-ho en directe.",
+    "prov.title": "Executa un node", "prov.sub": "Tens una GPU? Guanya Bitcoin servint infer\u00e8ncia.",
+    "try": "Prova-ho", "api.docs": "Docs API", "source": "Codi font", "send": "Enviar"
+  },
+  es: {
+    "hero.title": "Inferencia IA,<br><em>enrutada abiertamente</em>",
+    "hero.sub": "Pasarela de inferencia descentralizada impulsada por GPUs comunitarias. Facturaci\u00f3n transparente, pagos Lightning, 100% c\u00f3digo abierto.",
+    "stats.nodes": "Nodos en l\u00ednea", "stats.models": "Modelos disponibles", "stats.jobs": "Trabajos (24h)", "stats.tokens": "Tokens (24h)", "stats.fee": "Comisi\u00f3n",
+    "feat.title": "\u00bfPor qu\u00e9 RouteCat?", "feat.sub": "Todo lo que hace una pasarela cerrada, pero puedes leer cada l\u00ednea de c\u00f3digo.",
+    "feat.open.t": "Totalmente c\u00f3digo abierto", "feat.open.p": "Pasarela, facturaci\u00f3n, enrutamiento \u2014 todo p\u00fablico en GitHub.",
+    "feat.ln.t": "Pagos Lightning", "feat.ln.p": "Los proveedores ganan sats autom\u00e1ticamente. Los usuarios pagan por token.",
+    "feat.route.t": "Enrutamiento inteligente", "feat.route.p": "Las peticiones se enrutan al mejor nodo por modelo, VRAM y regi\u00f3n.",
+    "feat.bill.t": "Facturaci\u00f3n transparente", "feat.bill.p": "Precio por token, 5% de comisi\u00f3n, cada trabajo registrado.",
+    "feat.api.t": "Compatible con OpenAI", "feat.api.p": "Sustituci\u00f3n directa. Cambia la base_url y funciona.",
+    "feat.priv.t": "Privacidad primero", "feat.priv.p": "No registramos tus prompts. Los nodos no saben qui\u00e9n eres. Sin emails, sin cookies.",
+    "feat.comm.t": "Impulsado por la comunidad", "feat.comm.p": "Cualquiera con una GPU puede unirse. Gana Bitcoin con la computaci\u00f3n ociosa.",
+    "priv.title": "Tus prompts son tuyos",
+    "priv.body": "RouteCat act\u00faa como proxy de privacidad entre t\u00fa y los nodos de inferencia. No almacenamos, registramos ni inspeccionamos tus prompts o respuestas. Los nodos proveedores nunca ven tu identidad. Sin emails, sin registros, sin cookies.",
+    "pricing.title": "Precios", "pricing.sub": "Paga por token. Los proveedores se quedan el 95%, la pasarela se queda el 5%.",
+    "pricing.note": "10 peticiones gratuitas en el playground. Recarga con Lightning para acceso API.",
+    "faq.title": "Preguntas frecuentes",
+    "account.title": "Tu cuenta", "account.sub": "Obt\u00e9n una clave API. Recarga con Lightning. Consulta tu saldo.",
+    "pg.title": "Playground", "pg.sub": "Pru\u00e9balo en directo.",
+    "prov.title": "Ejecuta un nodo", "prov.sub": "\u00bfTienes una GPU? Gana Bitcoin sirviendo inferencia.",
+    "try": "Pru\u00e9balo", "api.docs": "Docs API", "source": "C\u00f3digo fuente", "send": "Enviar"
+  }
+};
+
+function switchLang(lang) {
+  localStorage.setItem('routecat-lang', lang);
+  if (lang === 'en') {
+    document.querySelectorAll('[data-i18n]').forEach(function(el) { el.innerHTML = el.getAttribute('data-orig') || el.innerHTML; });
+    return;
+  }
+  var t = _i18n[lang];
+  if (!t) return;
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var key = el.getAttribute('data-i18n');
+    if (!el.getAttribute('data-orig')) el.setAttribute('data-orig', el.innerHTML);
+    if (t[key]) el.innerHTML = t[key];
+  });
+}
+(function() {
+  var saved = localStorage.getItem('routecat-lang');
+  if (saved && saved !== 'en') {
+    document.getElementById('lang-select').value = saved;
+    switchLang(saved);
+  }
+})();
 </script>
 </body>
 </html>

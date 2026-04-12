@@ -303,6 +303,19 @@ func (g *Gateway) handleHeartbeat(nc *NodeConn, msg WSMsg) {
 	earnedTotal, _ := g.db.NodeEarningsTotal(nc.NodeID)
 	jobsToday, tokensToday, _ := g.db.NodeJobsToday(nc.NodeID)
 
+	// Withdraw history for this node
+	withdraws, _ := g.db.NodeWithdrawHistory(nc.NodeID, 5)
+	var wdHist []Withdraw
+	for _, w := range withdraws {
+		wdHist = append(wdHist, Withdraw{
+			AmountSats:  w.AmountMsats / 1000,
+			PaymentHash: w.PaymentHash,
+			Timestamp:   w.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		})
+	}
+
+	btcPrice := g.bill.BtcPrice()
+
 	ack := WSMsg{
 		Type:             "heartbeat_ack",
 		Status:           "registered",
@@ -312,6 +325,9 @@ func (g *Gateway) handleHeartbeat(nc *NodeConn, msg WSMsg) {
 		EarnedTotalSats:  earnedTotal,
 		BalanceSats:      balance,
 		QueueDepthGlobal: g.globalQueueDepth(),
+		BtcLiveUsd:       btcPrice,
+		BtcPriceStatus:   "normal",
+		WithdrawHistory:  wdHist,
 	}
 
 	if err := nc.Send(ack); err != nil {
