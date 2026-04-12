@@ -18,7 +18,10 @@ import (
 	"github.com/aaronFortuno/routecat/internal/store"
 )
 
-const version = "0.1.0"
+var (
+	version = "0.1.0"
+	commit  = "dev" // injected at build time via -ldflags
+)
 
 func main() {
 	showVersion := flag.Bool("version", false, "print version and exit")
@@ -31,7 +34,7 @@ func main() {
 	flag.Parse()
 
 	if *showVersion {
-		fmt.Printf("routecat %s\n", version)
+		fmt.Printf("routecat %s (%s)\n", version, commit)
 		os.Exit(0)
 	}
 
@@ -59,7 +62,7 @@ func main() {
 	bill := billing.New(db, *feePct)
 	rt := router.New()
 	gw := gateway.New(db, rt, bill)
-	pub := api.New(rt, bill, db)
+	pub := api.New(rt, bill, db, api.BuildInfo{Version: version, Commit: commit})
 
 	// Wire dependencies
 	rt.SetSource(gw)        // router reads live node state from gateway

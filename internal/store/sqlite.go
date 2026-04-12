@@ -336,6 +336,34 @@ type Invoice struct {
 	CreatedAt   time.Time
 }
 
+// AuditJob is an anonymised job record for the public audit log.
+type AuditJob struct {
+	Model       string `json:"model"`
+	TokensIn    int    `json:"tokens_in"`
+	TokensOut   int    `json:"tokens_out"`
+	EarnedMsats int64  `json:"earned_msats"`
+	FeeMsats    int64  `json:"fee_msats"`
+	Timestamp   string `json:"timestamp"`
+}
+
+// RecentJobs returns the last N completed jobs, anonymised (no user keys or node IDs).
+func (d *DB) RecentJobs(limit int) ([]AuditJob, error) {
+	rows, err := d.db.Query(`SELECT model, tokens_in, tokens_out, earned_msats, fee_msats, started_at FROM jobs WHERE status='complete' ORDER BY started_at DESC LIMIT ?`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []AuditJob
+	for rows.Next() {
+		var j AuditJob
+		if err := rows.Scan(&j.Model, &j.TokensIn, &j.TokensOut, &j.EarnedMsats, &j.FeeMsats, &j.Timestamp); err != nil {
+			continue
+		}
+		out = append(out, j)
+	}
+	return out, nil
+}
+
 // GlobalStats24h returns total jobs and tokens across all nodes in the last 24 hours.
 func (d *DB) GlobalStats24h() (jobs int, tokens int, err error) {
 	err = d.db.QueryRow(`SELECT COUNT(*), COALESCE(SUM(tokens_in+tokens_out),0) FROM jobs WHERE status='complete' AND started_at >= datetime('now', '-24 hours')`).Scan(&jobs, &tokens)

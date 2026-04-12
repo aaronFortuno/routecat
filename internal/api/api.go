@@ -94,6 +94,12 @@ type InvoiceCreator interface {
 	CreateInvoice(amountSats int64, memo string) (bolt11 string, paymentHash string, err error)
 }
 
+// BuildInfo holds version and commit hash for transparency.
+type BuildInfo struct {
+	Version string
+	Commit  string
+}
+
 // API handles public-facing inference requests.
 type API struct {
 	rt          *router.Router
@@ -102,13 +108,14 @@ type API struct {
 	assign      JobAssigner
 	invoicer    InvoiceCreator
 	nodeCounter NodeCounter
+	build       BuildInfo
 	regLimit    map[string][]time.Time // IP -> registration timestamps (rate limit)
 	regMu       sync.Mutex
 }
 
 // New creates the public API.
-func New(rt *router.Router, bill *billing.Engine, db *store.DB) *API {
-	return &API{rt: rt, bill: bill, db: db, regLimit: make(map[string][]time.Time)}
+func New(rt *router.Router, bill *billing.Engine, db *store.DB, build BuildInfo) *API {
+	return &API{rt: rt, bill: bill, db: db, build: build, regLimit: make(map[string][]time.Time)}
 }
 
 // SetAssigner wires the gateway's job assignment function.
@@ -324,10 +331,29 @@ func (a *API) HandleStats(w http.ResponseWriter, r *http.Request) {
 	jobs24h, tokens24h, _ := a.db.GlobalStats24h()
 	json.NewEncoder(w).Encode(map[string]any{
 		"nodes_online": nodes,
-		"btc_usd":      a.bill.BtcPrice(),
 		"fee_pct":      a.bill.FeePct(),
 		"jobs_24h":     jobs24h,
 		"tokens_24h":   tokens24h,
+		"version":      a.build.Version,
+		"commit":       a.build.Commit,
+	})
+}
+
+// HandleAudit serves GET /v1/audit — anonymised job log for transparency.
+// No API keys, no prompts, no user identifiers — just billing data.
+func (a *API) HandleAudit(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	jobs, err := a.db.RecentJobs(100)
+	if err != nil {
+		json.NewEncoder(w).Encode(map[string]any{"jobs": []any{}, "error": "query failed"})
+		return
+	}
+	json.NewEncoder(w).Encode(map[string]any{
+		"jobs":    jobs,
+		"version": a.build.Version,
+		"commit":  a.build.Commit,
+		"fee_pct": a.bill.FeePct(),
 	})
 }
 
