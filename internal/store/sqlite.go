@@ -180,11 +180,18 @@ func (d *DB) RegisterNode(n Node) error {
 
 // RecordJob inserts a completed job.
 func (d *DB) RecordJob(j Job) error {
+	// Format timestamps as ISO-8601 strings for reliable SQLite date comparisons
+	startedStr := j.StartedAt.UTC().Format("2006-01-02 15:04:05")
+	var completedStr *string
+	if j.CompletedAt != nil {
+		s := j.CompletedAt.UTC().Format("2006-01-02 15:04:05")
+		completedStr = &s
+	}
 	_, err := d.db.Exec(`
 		INSERT INTO jobs (job_id, node_id, user_key, model, tokens_in, tokens_out, earned_msats, fee_msats, free_tier, status, started_at, completed_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		j.JobID, j.NodeID, j.UserKey, j.Model, j.TokensIn, j.TokensOut,
-		j.EarnedMsats, j.FeeMsats, j.FreeTier, j.Status, j.StartedAt, j.CompletedAt,
+		j.EarnedMsats, j.FeeMsats, j.FreeTier, j.Status, startedStr, completedStr,
 	)
 	return err
 }
@@ -206,13 +213,13 @@ func (d *DB) NodeBalance(nodeID string) (int64, error) {
 // NodeEarningsToday returns msats earned today (UTC) by a node.
 func (d *DB) NodeEarningsToday(nodeID string) (int64, error) {
 	var v sql.NullInt64
-	err := d.db.QueryRow(`SELECT COALESCE(SUM(earned_msats),0) FROM jobs WHERE node_id=? AND status='complete' AND date(started_at)=date('now')`, nodeID).Scan(&v)
+	err := d.db.QueryRow(`SELECT COALESCE(SUM(earned_msats),0) FROM jobs WHERE node_id=? AND status='complete' AND started_at >= datetime('now', '-24 hours')`, nodeID).Scan(&v)
 	return v.Int64, err
 }
 
 // NodeJobsToday returns job count and total tokens for a node today.
 func (d *DB) NodeJobsToday(nodeID string) (jobs int, tokens int, err error) {
-	err = d.db.QueryRow(`SELECT COUNT(*), COALESCE(SUM(tokens_in+tokens_out),0) FROM jobs WHERE node_id=? AND status='complete' AND date(started_at)=date('now')`, nodeID).Scan(&jobs, &tokens)
+	err = d.db.QueryRow(`SELECT COUNT(*), COALESCE(SUM(tokens_in+tokens_out),0) FROM jobs WHERE node_id=? AND status='complete' AND started_at >= datetime('now', '-24 hours')`, nodeID).Scan(&jobs, &tokens)
 	return
 }
 
