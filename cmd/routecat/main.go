@@ -64,6 +64,11 @@ func main() {
 	// Wire dependencies
 	rt.SetSource(gw)       // router reads live node state from gateway
 	pub.SetAssigner(gw)    // API sends jobs via gateway
+	if ln != nil {
+		pub.SetInvoicer(ln)    // API creates invoices via LND
+		lightning.NewInvoiceWatcher(db, ln) // check paid invoices every 5s
+		log.Printf("routecat: invoice watcher started")
+	}
 
 	// Payout engine (if LND connected)
 	if ln != nil {

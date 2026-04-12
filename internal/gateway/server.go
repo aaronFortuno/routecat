@@ -37,6 +37,8 @@ func NewServer(addr string, gw *Gateway, pub *api.API, ln lightning.Client) *Ser
 	mux.HandleFunc("/v1/chat/completions", pub.HandleChatCompletions)
 	mux.HandleFunc("/v1/models", pub.HandleModels)
 	mux.HandleFunc("/v1/auth/register", pub.HandleRegisterUser)
+	mux.HandleFunc("/v1/auth/topup", pub.HandleTopUp)
+	mux.HandleFunc("/v1/auth/balance", pub.HandleBalance)
 
 	// Frontend (embedded static files)
 	mux.Handle("/", web.Handler())

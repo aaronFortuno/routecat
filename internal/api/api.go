@@ -63,12 +63,18 @@ type JobAssigner interface {
 	AssignJob(nodeID, jobID, model, userKey string, buyerBody []byte, freeTier bool) (responseCh <-chan []byte, doneCh <-chan struct{}, err error)
 }
 
+// InvoiceCreator generates Lightning invoices.
+type InvoiceCreator interface {
+	CreateInvoice(amountSats int64, memo string) (bolt11 string, paymentHash string, err error)
+}
+
 // API handles public-facing inference requests.
 type API struct {
-	rt     *router.Router
-	bill   *billing.Engine
-	db     *store.DB
-	assign JobAssigner
+	rt      *router.Router
+	bill    *billing.Engine
+	db      *store.DB
+	assign  JobAssigner
+	invoicer InvoiceCreator
 }
 
 // New creates the public API.
@@ -78,6 +84,94 @@ func New(rt *router.Router, bill *billing.Engine, db *store.DB) *API {
 
 // SetAssigner wires the gateway's job assignment function.
 func (a *API) SetAssigner(j JobAssigner) { a.assign = j }
+
+// SetInvoicer wires the Lightning invoice generator.
+func (a *API) SetInvoicer(ic InvoiceCreator) { a.invoicer = ic }
+
+// HandleTopUp generates a Lightning invoice for the user to pay.
+// POST /v1/auth/topup with {"amount_sats": 1000}
+func (a *API) HandleTopUp(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	auth := r.Header.Get("Authorization")
+	if !strings.HasPrefix(auth, "Bearer ") {
+		http.Error(w, `{"error":"missing API key"}`, http.StatusUnauthorized)
+		return
+	}
+	userKey := strings.TrimPrefix(auth, "Bearer ")
+
+	// Verify key exists
+	if _, _, err := a.db.ValidateUserKey(userKey); err != nil {
+		http.Error(w, `{"error":"invalid API key"}`, http.StatusUnauthorized)
+		return
+	}
+
+	var req struct {
+		AmountSats int64 `json:"amount_sats"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.AmountSats <= 0 {
+		http.Error(w, `{"error":"amount_sats must be positive"}`, http.StatusBadRequest)
+		return
+	}
+	if req.AmountSats < 10 || req.AmountSats > 100000 {
+		http.Error(w, `{"error":"amount must be between 10 and 100,000 sats"}`, http.StatusBadRequest)
+		return
+	}
+
+	if a.invoicer == nil {
+		http.Error(w, `{"error":"payments not available"}`, http.StatusServiceUnavailable)
+		return
+	}
+
+	bolt11, payHash, err := a.invoicer.CreateInvoice(req.AmountSats, "RouteCat top-up")
+	if err != nil {
+		http.Error(w, `{"error":"failed to create invoice"}`, http.StatusInternalServerError)
+		return
+	}
+
+	amountMsats := req.AmountSats * 1000
+	if err := a.db.CreateInvoice(payHash, userKey, amountMsats, bolt11); err != nil {
+		http.Error(w, `{"error":"failed to store invoice"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		"invoice":      bolt11,
+		"payment_hash": payHash,
+		"amount_sats":  req.AmountSats,
+		"expires_in":   600,
+	})
+}
+
+// HandleBalance returns the user's current balance.
+// GET /v1/auth/balance
+func (a *API) HandleBalance(w http.ResponseWriter, r *http.Request) {
+	auth := r.Header.Get("Authorization")
+	if !strings.HasPrefix(auth, "Bearer ") {
+		http.Error(w, `{"error":"missing API key"}`, http.StatusUnauthorized)
+		return
+	}
+	userKey := strings.TrimPrefix(auth, "Bearer ")
+
+	balance, err := a.db.UserBalance(userKey)
+	if err != nil {
+		http.Error(w, `{"error":"invalid API key"}`, http.StatusUnauthorized)
+		return
+	}
+
+	_, remaining, _ := a.db.ValidateUserKey(userKey)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		"balance_msats":    balance,
+		"balance_sats":     balance / 1000,
+		"free_remaining":   remaining,
+	})
+}
 
 // HandleChatCompletions processes POST /v1/chat/completions (OpenAI compatible).
 func (a *API) HandleChatCompletions(w http.ResponseWriter, r *http.Request) {
@@ -94,16 +188,19 @@ func (a *API) HandleChatCompletions(w http.ResponseWriter, r *http.Request) {
 	}
 	userKey := strings.TrimPrefix(auth, "Bearer ")
 
-	// Validate user key and quota
+	// Validate user key
 	_, remaining, err := a.db.ValidateUserKey(userKey)
 	if err != nil {
 		http.Error(w, `{"error":{"message":"invalid API key","type":"invalid_request_error"}}`, http.StatusUnauthorized)
 		return
 	}
-	if remaining <= 0 {
-		http.Error(w, `{"error":{"message":"daily quota exceeded","type":"rate_limit_error"}}`, http.StatusTooManyRequests)
+	// Check: free quota remaining OR positive balance
+	balance, _ := a.db.UserBalance(userKey)
+	if remaining <= 0 && balance <= 0 {
+		http.Error(w, `{"error":{"message":"daily quota exceeded and no balance — top up at /v1/auth/topup","type":"rate_limit_error"}}`, http.StatusTooManyRequests)
 		return
 	}
+	_ = remaining // billing deduction happens in gateway after job completes
 
 	// Read request body
 	body, err := io.ReadAll(r.Body)

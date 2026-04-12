@@ -88,6 +88,7 @@
     <a href="#features">Features</a>
     <a href="#pricing">Pricing</a>
     <a href="#api">API</a>
+    <a href="#account">Account</a>
     <a href="#playground">Playground</a>
     <a href="https://github.com/aaronFortuno/routecat" target="_blank">GitHub</a>
   </div>
@@ -193,6 +194,40 @@ response = client.chat.completions.create(
   </div>
 </section>
 
+<section id="account">
+  <h2>Your Account</h2>
+  <p class="subtitle">Get an API key. Top up with Lightning. Check your balance.</p>
+  <div class="playground" style="margin-bottom:24px">
+    <div id="acct-no-key">
+      <p style="color:var(--dim);margin-bottom:12px">Create a free API key to get started (100 requests/day).</p>
+      <div class="pg-row">
+        <input id="acct-name" type="text" placeholder="App name (optional)" style="flex:1" />
+        <button class="btn btn-primary" onclick="createKey()" style="flex:none">Create API Key</button>
+      </div>
+    </div>
+    <div id="acct-has-key" style="display:none">
+      <div class="stat" style="margin-bottom:8px"><span class="stat-label">API Key</span><span class="stat-value" id="acct-key" style="font-family:monospace;font-size:13px;color:var(--accent);word-break:break-all;max-width:400px;text-align:right"></span></div>
+      <div class="stat" style="margin-bottom:8px"><span class="stat-label">Balance</span><span class="stat-value" id="acct-balance" style="color:var(--green);font-weight:700">0 sats</span></div>
+      <div class="stat" style="margin-bottom:16px"><span class="stat-label">Free requests remaining</span><span class="stat-value" id="acct-free">-</span></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:14px;color:var(--dim)">Top up:</span>
+        <button class="btn btn-outline" onclick="topUp(100)" style="padding:6px 14px;font-size:13px">100 sats</button>
+        <button class="btn btn-outline" onclick="topUp(500)" style="padding:6px 14px;font-size:13px">500 sats</button>
+        <button class="btn btn-outline" onclick="topUp(1000)" style="padding:6px 14px;font-size:13px">1,000 sats</button>
+        <button class="btn btn-outline" onclick="topUp(5000)" style="padding:6px 14px;font-size:13px">5,000 sats</button>
+      </div>
+      <div id="acct-invoice" style="display:none;margin-top:16px;padding:16px;background:var(--bg);border:1px solid var(--border);border-radius:10px">
+        <p style="font-size:14px;color:var(--dim);margin-bottom:8px">Pay this Lightning invoice:</p>
+        <textarea id="acct-bolt11" readonly style="width:100%;height:60px;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px;font-size:11px;font-family:monospace;resize:none;box-sizing:border-box"></textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+          <span id="acct-inv-status" style="font-size:13px;color:var(--dim)">Waiting for payment...</span>
+          <button class="btn btn-outline" onclick="copyInvoice()" style="padding:4px 12px;font-size:12px">Copy</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section id="playground">
   <h2>Playground</h2>
   <p class="subtitle">Try it live. No sign-up needed for a quick test.</p>
@@ -259,16 +294,80 @@ async function loadStats() {
 loadStats();
 setInterval(loadStats, 30000);
 
-// Playground
-var _pgKey = '';
-async function ensureKey() {
-  if (_pgKey) return _pgKey;
+// ── Account management ──────────────────────────────��───────────
+var _pgKey = localStorage.getItem('routecat-key') || '';
+var _pollInvoice = null;
+
+function showAccountState() {
+  if (_pgKey) {
+    document.getElementById('acct-no-key').style.display = 'none';
+    document.getElementById('acct-has-key').style.display = '';
+    document.getElementById('acct-key').textContent = _pgKey;
+    refreshBalance();
+  }
+}
+
+async function createKey() {
+  var name = document.getElementById('acct-name').value.trim() || 'web';
   try {
-    var r = await fetch('/v1/auth/register', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{"name":"playground"}'});
+    var r = await fetch('/v1/auth/register', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:name})});
     var d = await r.json();
     _pgKey = d.api_key;
-    return _pgKey;
-  } catch(e) { return ''; }
+    localStorage.setItem('routecat-key', _pgKey);
+    showAccountState();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function refreshBalance() {
+  if (!_pgKey) return;
+  try {
+    var r = await fetch('/v1/auth/balance', {headers:{'Authorization':'Bearer ' + _pgKey}});
+    var d = await r.json();
+    document.getElementById('acct-balance').textContent = (d.balance_sats || 0) + ' sats';
+    document.getElementById('acct-free').textContent = d.free_remaining;
+  } catch(e) {}
+}
+
+async function topUp(sats) {
+  if (!_pgKey) return;
+  try {
+    var r = await fetch('/v1/auth/topup', {method:'POST', headers:{'Authorization':'Bearer ' + _pgKey, 'Content-Type':'application/json'}, body:JSON.stringify({amount_sats:sats})});
+    var d = await r.json();
+    if (d.error) { alert(d.error); return; }
+    document.getElementById('acct-bolt11').value = d.invoice;
+    document.getElementById('acct-invoice').style.display = '';
+    document.getElementById('acct-inv-status').textContent = 'Waiting for payment...';
+    document.getElementById('acct-inv-status').style.color = 'var(--dim)';
+    // Poll for payment
+    if (_pollInvoice) clearInterval(_pollInvoice);
+    _pollInvoice = setInterval(async function() {
+      var b = await (await fetch('/v1/auth/balance', {headers:{'Authorization':'Bearer ' + _pgKey}})).json();
+      document.getElementById('acct-balance').textContent = (b.balance_sats || 0) + ' sats';
+      document.getElementById('acct-free').textContent = b.free_remaining;
+      if (b.balance_sats > 0) {
+        document.getElementById('acct-inv-status').textContent = 'Payment received!';
+        document.getElementById('acct-inv-status').style.color = 'var(--green)';
+        clearInterval(_pollInvoice);
+        _pollInvoice = null;
+        setTimeout(function() { document.getElementById('acct-invoice').style.display = 'none'; }, 3000);
+      }
+    }, 3000);
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+function copyInvoice() {
+  var ta = document.getElementById('acct-bolt11');
+  ta.select(); document.execCommand('copy');
+}
+
+showAccountState();
+setInterval(refreshBalance, 15000);
+
+// Playground
+async function ensureKey() {
+  if (_pgKey) return _pgKey;
+  await createKey();
+  return _pgKey;
 }
 
 async function runPlayground() {

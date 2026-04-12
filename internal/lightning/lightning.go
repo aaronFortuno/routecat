@@ -4,6 +4,7 @@ package lightning
 
 import (
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -14,10 +15,12 @@ import (
 	"time"
 )
 
-// Client is the interface for sending Lightning payments.
+// Client is the interface for Lightning operations.
 type Client interface {
 	PayAddress(address string, amountSats int64) (paymentHash string, err error)
 	GetBalance() (sats int64, err error)
+	CreateInvoice(amountSats int64, memo string) (bolt11 string, paymentHash string, err error)
+	CheckInvoice(paymentHash string) (paid bool, err error)
 }
 
 // LNDClient connects to an LND node via REST API.
@@ -150,6 +153,58 @@ func (c *LNDClient) PayAddress(address string, amountSats int64) (string, error)
 
 	// Step 3: Pay the invoice via LND
 	return c.payInvoice(inv.PR)
+}
+
+// CreateInvoice generates a Lightning invoice via LND.
+func (c *LNDClient) CreateInvoice(amountSats int64, memo string) (string, string, error) {
+	payload := fmt.Sprintf(`{"value":"%d","memo":"%s","expiry":"600"}`, amountSats, memo)
+	resp, err := c.do("POST", "/v1/invoices", strings.NewReader(payload))
+	if err != nil {
+		return "", "", fmt.Errorf("lnd invoice: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		PaymentRequest string `json:"payment_request"`
+		RHash          string `json:"r_hash"` // base64-encoded
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", "", fmt.Errorf("lnd invoice parse: %w", err)
+	}
+
+	payHash := b64ToHex(result.RHash)
+	return result.PaymentRequest, payHash, nil
+}
+
+// CheckInvoice checks if a Lightning invoice has been paid.
+func (c *LNDClient) CheckInvoice(paymentHash string) (bool, error) {
+	rHashB64 := hexToB64URL(paymentHash)
+	resp, err := c.do("GET", "/v1/invoice/"+rHashB64, nil)
+	if err != nil {
+		return false, fmt.Errorf("lnd lookup: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		State string `json:"state"` // "OPEN", "SETTLED", "CANCELED", "ACCEPTED"
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return false, err
+	}
+	return result.State == "SETTLED", nil
+}
+
+func b64ToHex(s string) string {
+	b, err := base64.RawURLEncoding.DecodeString(s)
+	if err != nil {
+		b, _ = base64.StdEncoding.DecodeString(s)
+	}
+	return hex.EncodeToString(b)
+}
+
+func hexToB64URL(s string) string {
+	b, _ := hex.DecodeString(s)
+	return base64.RawURLEncoding.EncodeToString(b)
 }
 
 func (c *LNDClient) payInvoice(bolt11 string) (string, error) {

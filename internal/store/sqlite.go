@@ -3,6 +3,7 @@ package store
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -53,8 +54,20 @@ func migrate(db *sql.DB) error {
 			user_id       TEXT NOT NULL,
 			name          TEXT,
 			quota_daily   INTEGER DEFAULT 100,
+			balance_msats INTEGER DEFAULT 0,
 			created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
 		);
+
+		CREATE TABLE IF NOT EXISTS invoices (
+			payment_hash  TEXT PRIMARY KEY,
+			user_key      TEXT NOT NULL,
+			amount_msats  INTEGER NOT NULL,
+			bolt11        TEXT NOT NULL,
+			status        TEXT DEFAULT 'pending',  -- pending, credited, expired
+			created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
+		);
+
+		CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status);
 
 		CREATE TABLE IF NOT EXISTS jobs (
 			job_id        TEXT PRIMARY KEY,
@@ -221,6 +234,106 @@ func (d *DB) CreateUserKey(key, userID, name string, quotaDaily int) error {
 	_, err := d.db.Exec(`INSERT INTO api_keys (key, user_id, name, quota_daily) VALUES (?, ?, ?, ?)`,
 		key, userID, name, quotaDaily)
 	return err
+}
+
+// UserBalance returns the balance in msats for a user API key.
+func (d *DB) UserBalance(key string) (int64, error) {
+	var v sql.NullInt64
+	err := d.db.QueryRow(`SELECT balance_msats FROM api_keys WHERE key=?`, key).Scan(&v)
+	return v.Int64, err
+}
+
+// DeductBalance atomically deducts msats from a user's balance.
+// Returns error if insufficient balance.
+func (d *DB) DeductBalance(key string, amountMsats int64) error {
+	tx, err := d.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	var current int64
+	if err := tx.QueryRow(`SELECT balance_msats FROM api_keys WHERE key=?`, key).Scan(&current); err != nil {
+		return err
+	}
+	if current < amountMsats {
+		return fmt.Errorf("insufficient balance: %d < %d msats", current, amountMsats)
+	}
+	if _, err := tx.Exec(`UPDATE api_keys SET balance_msats = balance_msats - ? WHERE key=?`, amountMsats, key); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// CreateInvoice stores a pending Lightning invoice for a user top-up.
+func (d *DB) CreateInvoice(paymentHash, userKey string, amountMsats int64, bolt11 string) error {
+	_, err := d.db.Exec(`INSERT INTO invoices (payment_hash, user_key, amount_msats, bolt11, status) VALUES (?, ?, ?, ?, 'pending')`,
+		paymentHash, userKey, amountMsats, bolt11)
+	return err
+}
+
+// CreditInvoice atomically marks an invoice as credited and adds to user balance.
+// Returns false if already credited (idempotent).
+func (d *DB) CreditInvoice(paymentHash string) (credited bool, err error) {
+	tx, err := d.db.Begin()
+	if err != nil {
+		return false, err
+	}
+	defer tx.Rollback()
+
+	var status string
+	var userKey string
+	var amountMsats int64
+	err = tx.QueryRow(`SELECT status, user_key, amount_msats FROM invoices WHERE payment_hash=?`, paymentHash).Scan(&status, &userKey, &amountMsats)
+	if err != nil {
+		return false, err
+	}
+	if status != "pending" {
+		return false, nil // already credited or expired
+	}
+	if _, err := tx.Exec(`UPDATE invoices SET status='credited' WHERE payment_hash=?`, paymentHash); err != nil {
+		return false, err
+	}
+	if _, err := tx.Exec(`UPDATE api_keys SET balance_msats = balance_msats + ? WHERE key=?`, amountMsats, userKey); err != nil {
+		return false, err
+	}
+	return true, tx.Commit()
+}
+
+// PendingInvoices returns all invoices with status 'pending'.
+func (d *DB) PendingInvoices() ([]Invoice, error) {
+	rows, err := d.db.Query(`SELECT payment_hash, user_key, amount_msats, bolt11, created_at FROM invoices WHERE status='pending'`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []Invoice
+	for rows.Next() {
+		var inv Invoice
+		if err := rows.Scan(&inv.PaymentHash, &inv.UserKey, &inv.AmountMsats, &inv.Bolt11, &inv.CreatedAt); err != nil {
+			continue
+		}
+		out = append(out, inv)
+	}
+	return out, nil
+}
+
+// ExpireOldInvoices marks invoices older than 10 minutes as expired.
+func (d *DB) ExpireOldInvoices() (int64, error) {
+	r, err := d.db.Exec(`UPDATE invoices SET status='expired' WHERE status='pending' AND created_at < datetime('now', '-10 minutes')`)
+	if err != nil {
+		return 0, err
+	}
+	return r.RowsAffected()
+}
+
+// Invoice represents a Lightning invoice for user top-up.
+type Invoice struct {
+	PaymentHash string
+	UserKey     string
+	AmountMsats int64
+	Bolt11      string
+	CreatedAt   time.Time
 }
 
 // RecordPayout inserts a payout record.

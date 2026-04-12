@@ -411,6 +411,15 @@ func (g *Gateway) handleProxyDone(nc *NodeConn, msg WSMsg) {
 		return
 	}
 
+	// Deduct from user balance if this was a paid request (total cost = provider + fee)
+	totalCostMsats := providerMsats + feeMsats
+	if totalCostMsats > 0 && !job.FreeTier {
+		if err := g.db.DeductBalance(job.UserKey, totalCostMsats); err != nil {
+			// Deduction failed (insufficient balance or free tier) — not critical, job already served
+			log.Printf("routecat: deduct user %s: %v (cost: %d msats)", job.UserKey[:6], err, totalCostMsats)
+		}
+	}
+
 	// Send job_complete to node
 	_ = nc.Send(WSMsg{
 		Type:      "job_complete",
