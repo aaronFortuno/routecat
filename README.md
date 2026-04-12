@@ -1,4 +1,6 @@
-# 🐱 RouteCat
+<p align="center"><img src="logo.png" alt="RouteCat" width="280"></p>
+
+# RouteCat
 
 **Open-source AI inference gateway** — routes user requests to community GPU nodes, meters tokens transparently, pays providers via Lightning Network.
 
