@@ -87,11 +87,11 @@
 <nav>
   <div class="nav-logo"><img src="/logo.svg" alt="RouteCat" class="logo-img"> route<span>cat</span></div>
   <div class="nav-links">
-    <a href="#features">Features</a>
-    <a href="#pricing">Pricing</a>
-    <a href="#api">API</a>
-    <a href="#account">Account</a>
-    <a href="#playground">Playground</a>
+    <a href="#features" data-i18n="nav.feat">Features</a>
+    <a href="#pricing" data-i18n="nav.price">Pricing</a>
+    <a href="#api" data-i18n="nav.api">API</a>
+    <a href="#account" data-i18n="nav.acct">Account</a>
+    <a href="#playground" data-i18n="nav.pg">Playground</a>
     <a href="https://github.com/aaronFortuno/routecat" target="_blank">GitHub</a>
   </div>
 </nav>
@@ -101,18 +101,18 @@
   <h1 data-i18n="hero.title">AI inference,<br><em>routed openly</em></h1>
   <p data-i18n="hero.sub">Decentralized inference gateway powered by community GPUs. Transparent billing, Lightning payments, 100% open source.</p>
   <div class="hero-btns">
-    <a href="#playground" class="btn btn-primary">Try it now</a>
-    <a href="#api" class="btn btn-outline">API docs</a>
-    <a href="https://github.com/aaronFortuno/routecat" class="btn btn-outline" target="_blank">View source</a>
+    <a href="#playground" class="btn btn-primary" data-i18n="try">Try it now</a>
+    <a href="#api" class="btn btn-outline" data-i18n="api.docs">API docs</a>
+    <a href="https://github.com/aaronFortuno/routecat" class="btn btn-outline" target="_blank" data-i18n="source">View source</a>
   </div>
 </div>
 
 <div class="stats-bar">
-  <div class="stat-item"><div class="stat-num" id="st-nodes">-</div><div class="stat-label">Nodes online</div></div>
-  <div class="stat-item"><div class="stat-num" id="st-models">-</div><div class="stat-label">Models available</div></div>
-  <div class="stat-item"><div class="stat-num" id="st-jobs-24h">-</div><div class="stat-label">Jobs (24h)</div></div>
-  <div class="stat-item"><div class="stat-num" id="st-tokens-24h">-</div><div class="stat-label">Tokens (24h)</div></div>
-  <div class="stat-item"><div class="stat-num" id="st-fee">5%</div><div class="stat-label">Gateway fee</div></div>
+  <div class="stat-item"><div class="stat-num" id="st-nodes">-</div><div class="stat-label" data-i18n="stats.nodes">Nodes online</div></div>
+  <div class="stat-item"><div class="stat-num" id="st-models">-</div><div class="stat-label" data-i18n="stats.models">Models available</div></div>
+  <div class="stat-item"><div class="stat-num" id="st-jobs-24h">-</div><div class="stat-label" data-i18n="stats.jobs">Jobs (24h)</div></div>
+  <div class="stat-item"><div class="stat-num" id="st-tokens-24h">-</div><div class="stat-label" data-i18n="stats.tokens">Tokens (24h)</div></div>
+  <div class="stat-item"><div class="stat-num" id="st-fee">5%</div><div class="stat-label" data-i18n="stats.fee">Gateway fee</div></div>
 </div>
 
 <section id="features">
@@ -121,38 +121,38 @@
   <div class="features">
     <div class="feature">
       <div class="feature-icon">🔓</div>
-      <h3>Fully open source</h3>
-      <p>Gateway, billing, routing — all public on GitHub. Audit the code that handles your money.</p>
+      <h3 data-i18n="feat.open.t">Fully open source</h3>
+      <p data-i18n="feat.open.p">Gateway, billing, routing — all public on GitHub. Audit the code that handles your money.</p>
     </div>
     <div class="feature">
       <div class="feature-icon">⚡</div>
-      <h3>Lightning payments</h3>
-      <p>Providers earn sats automatically. Users pay per token. No accounts, no credit cards, no middlemen.</p>
+      <h3 data-i18n="feat.ln.t">Lightning payments</h3>
+      <p data-i18n="feat.ln.p">Providers earn sats automatically. Users pay per token. No accounts, no credit cards, no middlemen.</p>
     </div>
     <div class="feature">
       <div class="feature-icon">🔀</div>
-      <h3>Smart routing</h3>
-      <p>Requests are routed to the best available node by model, VRAM, queue depth, and region.</p>
+      <h3 data-i18n="feat.route.t">Smart routing</h3>
+      <p data-i18n="feat.route.p">Requests are routed to the best available node by model, VRAM, queue depth, and region.</p>
     </div>
     <div class="feature">
       <div class="feature-icon">📊</div>
-      <h3>Transparent billing</h3>
-      <p>Per-token pricing, 5% flat fee, every job logged in SQLite. No hidden charges.</p>
+      <h3 data-i18n="feat.bill.t">Transparent billing</h3>
+      <p data-i18n="feat.bill.p">Per-token pricing, 5% flat fee, every job logged in SQLite. No hidden charges.</p>
     </div>
     <div class="feature">
       <div class="feature-icon">🤖</div>
-      <h3>OpenAI compatible</h3>
-      <p>Drop-in replacement for the OpenAI API. Change one line — your base URL — and it works.</p>
+      <h3 data-i18n="feat.api.t">OpenAI compatible</h3>
+      <p data-i18n="feat.api.p">Drop-in replacement for the OpenAI API. Change one line — your base URL — and it works.</p>
     </div>
     <div class="feature">
       <div class="feature-icon">🔒</div>
-      <h3>Privacy first</h3>
-      <p>No accounts, no emails, no tracking. We don't log your prompts or responses. Provider nodes never know who you are. Your API key is your only identity.</p>
+      <h3 data-i18n="feat.priv.t">Privacy first</h3>
+      <p data-i18n="feat.priv.p">No accounts, no emails, no tracking. We don't log your prompts or responses. Provider nodes never know who you are. Your API key is your only identity.</p>
     </div>
     <div class="feature">
       <div class="feature-icon">🐱</div>
-      <h3>Community powered</h3>
-      <p>Anyone with a GPU can join as a provider. Earn Bitcoin from idle compute. No lock-in.</p>
+      <h3 data-i18n="feat.comm.t">Community powered</h3>
+      <p data-i18n="feat.comm.p">Anyone with a GPU can join as a provider. Earn Bitcoin from idle compute. No lock-in.</p>
     </div>
   </div>
 </section>
@@ -170,8 +170,8 @@
 </section>
 
 <section id="pricing">
-  <h2>Pricing</h2>
-  <p class="subtitle">Pay per token. Providers keep 95%, gateway takes 5%.</p>
+  <h2 data-i18n="pricing.title">Pricing</h2>
+  <p class="subtitle" data-i18n="pricing.sub">Pay per token. Providers keep 95%, gateway takes 5%.</p>
   <div class="pricing-table">
     <table>
       <thead><tr><th>Model</th><th>Input (per 1M tokens)</th><th>Output (per 1M tokens)</th></tr></thead>
@@ -180,12 +180,12 @@
       </tbody>
     </table>
   </div>
-  <div class="pricing-note">10 free playground requests per day. Top up with Lightning for API access.</div>
+  <div class="pricing-note" data-i18n="pricing.note">10 free playground requests per day. Top up with Lightning for API access.</div>
 </section>
 
 <section id="api">
-  <h2>API</h2>
-  <p class="subtitle">OpenAI-compatible. Works with any SDK or curl.</p>
+  <h2 data-i18n="api.title">API</h2>
+  <p class="subtitle" data-i18n="api.sub">OpenAI-compatible. Works with any SDK or curl.</p>
 
   <h3 style="margin-bottom:12px;color:var(--dim);font-size:14px;text-transform:uppercase;letter-spacing:0.5px">1. Get an API key</h3>
   <div class="code-block">
@@ -215,8 +215,8 @@ response = client.chat.completions.create(
 </section>
 
 <section id="account">
-  <h2>Your Account</h2>
-  <p class="subtitle">Get an API key. Top up with Lightning. Check your balance.</p>
+  <h2 data-i18n="account.title">Your Account</h2>
+  <p class="subtitle" data-i18n="account.sub">Get an API key. Top up with Lightning. Check your balance.</p>
   <div class="playground" style="margin-bottom:24px">
     <div id="acct-no-key">
       <p style="color:var(--dim);margin-bottom:16px">Create a free API key to try the playground (10 requests/day), or enter an existing key.</p>
@@ -267,8 +267,8 @@ response = client.chat.completions.create(
 </section>
 
 <section id="playground">
-  <h2>Playground</h2>
-  <p class="subtitle">Try it live. No sign-up needed for a quick test.</p>
+  <h2 data-i18n="pg.title">Playground</h2>
+  <p class="subtitle" data-i18n="pg.sub">Try it live. No sign-up needed for a quick test.</p>
   <div class="playground">
     <div class="pg-row">
       <select id="pg-model"><option value="">Loading models...</option></select>
@@ -284,8 +284,8 @@ response = client.chat.completions.create(
 </section>
 
 <section id="providers">
-  <h2>Run a node</h2>
-  <p class="subtitle">Got a GPU? Earn Bitcoin by serving inference.</p>
+  <h2 data-i18n="prov.title">Run a node</h2>
+  <p class="subtitle" data-i18n="prov.sub">Got a GPU? Earn Bitcoin by serving inference.</p>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
     <div class="feature">
       <h3 style="margin-bottom:8px">Quick start</h3>
@@ -306,7 +306,7 @@ lightning_address = <span class="str">you@wallet.com</span>
 </section>
 
 <section id="faq">
-  <h2>FAQ</h2>
+  <h2 data-i18n="faq.title">FAQ</h2>
   <div style="max-width:800px">
     <details style="margin-bottom:12px;padding:16px 20px;background:var(--bg2);border:1px solid var(--border);border-radius:10px">
       <summary style="cursor:pointer;font-weight:600;font-size:16px;color:var(--text)">How does RouteCat protect my privacy?</summary>
@@ -609,6 +609,8 @@ var _i18n = {
     "account.title": "El teu compte", "account.sub": "Obt\u00e9 una clau API. Recarrega amb Lightning. Consulta el teu saldo.",
     "pg.title": "Playground", "pg.sub": "Prova-ho en directe.",
     "prov.title": "Executa un node", "prov.sub": "Tens una GPU? Guanya Bitcoin servint infer\u00e8ncia.",
+    "nav.feat": "Caracter\u00edstiques", "nav.price": "Preus", "nav.api": "API", "nav.acct": "Compte", "nav.pg": "Playground",
+    "api.title": "API", "api.sub": "Compatible amb OpenAI. Funciona amb qualsevol SDK o curl.",
     "try": "Prova-ho", "api.docs": "Docs API", "source": "Codi font", "send": "Enviar"
   },
   es: {
@@ -631,6 +633,8 @@ var _i18n = {
     "account.title": "Tu cuenta", "account.sub": "Obt\u00e9n una clave API. Recarga con Lightning. Consulta tu saldo.",
     "pg.title": "Playground", "pg.sub": "Pru\u00e9balo en directo.",
     "prov.title": "Ejecuta un nodo", "prov.sub": "\u00bfTienes una GPU? Gana Bitcoin sirviendo inferencia.",
+    "nav.feat": "Caracter\u00edsticas", "nav.price": "Precios", "nav.api": "API", "nav.acct": "Cuenta", "nav.pg": "Playground",
+    "api.title": "API", "api.sub": "Compatible con OpenAI. Funciona con cualquier SDK o curl.",
     "try": "Pru\u00e9balo", "api.docs": "Docs API", "source": "C\u00f3digo fuente", "send": "Enviar"
   }
 };
