@@ -74,20 +74,37 @@ func (e *Engine) AllPricing() map[string]ModelPricing {
 	return e.pricing
 }
 
-// defaultPricing returns starter pricing for common models.
+// defaultPricing returns pricing for common models.
+// Prices are competitive with Owlrun and scale with model size/quality.
 // In production this would be loaded from config or an admin API.
 func defaultPricing() map[string]ModelPricing {
 	return map[string]ModelPricing{
-		"qwen2.5:0.5b":  {PerMInputUSD: 0.0002, PerMOutputUSD: 0.0004},
-		"qwen2.5:1.5b":  {PerMInputUSD: 0.0003, PerMOutputUSD: 0.0006},
-		"qwen2.5:3b":    {PerMInputUSD: 0.0005, PerMOutputUSD: 0.001},
-		"qwen2.5:7b":    {PerMInputUSD: 0.001, PerMOutputUSD: 0.002},
-		"qwen2.5:14b":   {PerMInputUSD: 0.002, PerMOutputUSD: 0.004},
-		"qwen2.5:32b":   {PerMInputUSD: 0.004, PerMOutputUSD: 0.008},
-		"llama3.2:3b":   {PerMInputUSD: 0.0005, PerMOutputUSD: 0.001},
-		"llama3.1:8b":   {PerMInputUSD: 0.001, PerMOutputUSD: 0.002},
-		"gemma2:9b":     {PerMInputUSD: 0.001, PerMOutputUSD: 0.002},
-		"mistral:7b":    {PerMInputUSD: 0.001, PerMOutputUSD: 0.002},
-		"deepseek-r1:7b": {PerMInputUSD: 0.001, PerMOutputUSD: 0.003},
+		// Large / premium models
+		"qwen2.5:32b":          {PerMInputUSD: 0.05, PerMOutputUSD: 0.12},
+		"qwen2.5:14b":          {PerMInputUSD: 0.03, PerMOutputUSD: 0.08},
+		"deepseek-r1:14b":      {PerMInputUSD: 0.04, PerMOutputUSD: 0.10},
+		"llama3.1:70b":         {PerMInputUSD: 0.08, PerMOutputUSD: 0.15},
+		"llama3.1:8b":          {PerMInputUSD: 0.02, PerMOutputUSD: 0.06},
+		"gemma2:27b":           {PerMInputUSD: 0.04, PerMOutputUSD: 0.10},
+		"mixtral:8x7b":         {PerMInputUSD: 0.05, PerMOutputUSD: 0.12},
+		"command-r:35b":        {PerMInputUSD: 0.04, PerMOutputUSD: 0.10},
+		// Mid-range models
+		"qwen2.5:7b":           {PerMInputUSD: 0.015, PerMOutputUSD: 0.05},
+		"deepseek-r1:7b":       {PerMInputUSD: 0.02, PerMOutputUSD: 0.06},
+		"gemma2:9b":            {PerMInputUSD: 0.015, PerMOutputUSD: 0.05},
+		"mistral:7b":           {PerMInputUSD: 0.015, PerMOutputUSD: 0.05},
+		"phi4-mini:latest":     {PerMInputUSD: 0.015, PerMOutputUSD: 0.05},
+		"llama3.2:3b":          {PerMInputUSD: 0.01, PerMOutputUSD: 0.03},
+		"qwen2.5:3b":           {PerMInputUSD: 0.01, PerMOutputUSD: 0.03},
+		// Small / fast models
+		"qwen2.5:1.5b":         {PerMInputUSD: 0.005, PerMOutputUSD: 0.015},
+		"qwen2.5:0.5b":         {PerMInputUSD: 0.003, PerMOutputUSD: 0.008},
+		"phi3:mini":            {PerMInputUSD: 0.01, PerMOutputUSD: 0.03},
+		"tinyllama:1.1b":       {PerMInputUSD: 0.002, PerMOutputUSD: 0.005},
 	}
+}
+
+// FallbackPricing returns the default pricing for unknown models.
+func FallbackPricing() ModelPricing {
+	return ModelPricing{PerMInputUSD: 0.01, PerMOutputUSD: 0.03}
 }

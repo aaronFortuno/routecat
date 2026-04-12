@@ -300,9 +300,13 @@ async function loadStats() {
     var models = d.data || [];
     document.getElementById('st-models').textContent = models.length;
 
-    // Pricing table
+    // Pricing table (sorted by output price descending — best models first)
     if (models.length > 0) {
-      var rows = models.sort(function(a,b) { return a.id.localeCompare(b.id); }).map(function(m) {
+      var rows = models.sort(function(a,b) {
+        var pa = (a.routecat_pricing || {}).per_m_output_usd || 0;
+        var pb = (b.routecat_pricing || {}).per_m_output_usd || 0;
+        return pb - pa;
+      }).map(function(m) {
         var p = m.routecat_pricing;
         var inp = p ? '$' + p.per_m_input_usd.toFixed(4) : '—';
         var out = p ? '$' + p.per_m_output_usd.toFixed(4) : '—';
@@ -311,9 +315,13 @@ async function loadStats() {
       document.getElementById('pricing-body').innerHTML = rows;
     }
 
-    // Playground model selector (with pricing)
+    // Playground model selector (sorted by price desc, with pricing)
     var sel = document.getElementById('pg-model');
-    sel.innerHTML = models.sort(function(a,b) { return a.id.localeCompare(b.id); }).map(function(m) {
+    sel.innerHTML = models.sort(function(a,b) {
+      var pa = (a.routecat_pricing || {}).per_m_output_usd || 0;
+      var pb = (b.routecat_pricing || {}).per_m_output_usd || 0;
+      return pb - pa;
+    }).map(function(m) {
       var p = m.routecat_pricing;
       var label = m.id;
       if (p) label += '  (in: $' + p.per_m_input_usd.toFixed(4) + ' / out: $' + p.per_m_output_usd.toFixed(4) + ')';

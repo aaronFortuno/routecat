@@ -341,7 +341,7 @@ func (a *API) HandleModels(w http.ResponseWriter, r *http.Request) {
 
 	// Only show models that are actually available on connected nodes
 	available := a.rt.AvailableModels()
-	fallback := billing.ModelPricing{PerMInputUSD: 0.0005, PerMOutputUSD: 0.001}
+	fallback := billing.FallbackPricing()
 	var models []modelEntry
 	for _, tag := range available {
 		entry := modelEntry{ID: tag, Object: "model"}
