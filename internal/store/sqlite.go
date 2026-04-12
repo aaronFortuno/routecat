@@ -336,6 +336,12 @@ type Invoice struct {
 	CreatedAt   time.Time
 }
 
+// GlobalStats24h returns total jobs and tokens across all nodes in the last 24 hours.
+func (d *DB) GlobalStats24h() (jobs int, tokens int, err error) {
+	err = d.db.QueryRow(`SELECT COUNT(*), COALESCE(SUM(tokens_in+tokens_out),0) FROM jobs WHERE status='complete' AND started_at >= datetime('now', '-24 hours')`).Scan(&jobs, &tokens)
+	return
+}
+
 // RecordPayout inserts a payout record.
 func (d *DB) RecordPayout(nodeID string, amountMsats int64, paymentHash, status string) error {
 	_, err := d.db.Exec(`INSERT INTO payouts (node_id, amount_msats, payment_hash, status, confirmed_at) VALUES (?, ?, ?, ?, ?)`,

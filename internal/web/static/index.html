@@ -41,7 +41,7 @@
   section .subtitle { color: var(--dim); font-size: 18px; margin-bottom: 40px; }
 
   /* Features grid */
-  .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
   .feature { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 28px; }
   .feature-icon { font-size: 28px; margin-bottom: 12px; }
   .feature h3 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
@@ -110,8 +110,9 @@
 <div class="stats-bar">
   <div class="stat-item"><div class="stat-num" id="st-nodes">-</div><div class="stat-label">Nodes online</div></div>
   <div class="stat-item"><div class="stat-num" id="st-models">-</div><div class="stat-label">Models available</div></div>
+  <div class="stat-item"><div class="stat-num" id="st-jobs-24h">-</div><div class="stat-label">Jobs (24h)</div></div>
+  <div class="stat-item"><div class="stat-num" id="st-tokens-24h">-</div><div class="stat-label">Tokens (24h)</div></div>
   <div class="stat-item"><div class="stat-num" id="st-fee">5%</div><div class="stat-label">Gateway fee</div></div>
-  <div class="stat-item"><div class="stat-num" id="st-btc">-</div><div class="stat-label">BTC/USD</div></div>
 </div>
 
 <section id="features">
@@ -144,10 +145,27 @@
       <p>Drop-in replacement for the OpenAI API. Change one line — your base URL — and it works.</p>
     </div>
     <div class="feature">
+      <div class="feature-icon">🔒</div>
+      <h3>Privacy first</h3>
+      <p>No accounts, no emails, no tracking. We don't log your prompts or responses. Provider nodes never know who you are. Your API key is your only identity.</p>
+    </div>
+    <div class="feature">
       <div class="feature-icon">🐱</div>
       <h3>Community powered</h3>
       <p>Anyone with a GPU can join as a provider. Earn Bitcoin from idle compute. No lock-in.</p>
     </div>
+  </div>
+</section>
+
+<section id="privacy" style="text-align:center;padding:60px 36px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--bg2)">
+  <h2 style="margin-bottom:16px">Your prompts are yours</h2>
+  <p style="color:var(--dim);font-size:18px;max-width:700px;margin:0 auto 24px;line-height:1.7">RouteCat acts as a privacy proxy between you and the inference nodes. We don't store, log, or inspect your prompts or responses. Provider nodes never see your identity — they only receive the raw inference request. No emails, no sign-ups, no cookies. Your API key is the only link to your account, and it's generated locally with no personal data attached.</p>
+  <div style="display:flex;justify-content:center;gap:36px;flex-wrap:wrap;color:var(--dim);font-size:15px">
+    <span>&#10003; No prompt logging</span>
+    <span>&#10003; No user tracking</span>
+    <span>&#10003; No email required</span>
+    <span>&#10003; Anonymous to providers</span>
+    <span>&#10003; Open-source & auditable</span>
   </div>
 </section>
 
@@ -285,6 +303,12 @@ gateway = <span class="str">https://route.cat</span>
 </footer>
 
 <script>
+function formatTokens(n) {
+  if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+  if (n >= 1000) return (n/1000).toFixed(1) + 'K';
+  return n.toString();
+}
+
 // Load live stats
 async function loadStats() {
   try {
@@ -292,7 +316,8 @@ async function loadStats() {
     var sr = await fetch('/v1/stats');
     var stats = await sr.json();
     document.getElementById('st-nodes').textContent = stats.nodes_online || 0;
-    document.getElementById('st-btc').textContent = stats.btc_usd ? '$' + Math.round(stats.btc_usd).toLocaleString() : '—';
+    document.getElementById('st-jobs-24h').textContent = (stats.jobs_24h || 0).toLocaleString();
+    document.getElementById('st-tokens-24h').textContent = formatTokens(stats.tokens_24h || 0);
 
     // Models
     var r = await fetch('/v1/models');

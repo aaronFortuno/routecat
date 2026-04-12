@@ -321,10 +321,13 @@ func (a *API) HandleStats(w http.ResponseWriter, r *http.Request) {
 	if a.nodeCounter != nil {
 		nodes = a.nodeCounter.ConnectedNodes()
 	}
+	jobs24h, tokens24h, _ := a.db.GlobalStats24h()
 	json.NewEncoder(w).Encode(map[string]any{
 		"nodes_online": nodes,
 		"btc_usd":      a.bill.BtcPrice(),
 		"fee_pct":      a.bill.FeePct(),
+		"jobs_24h":     jobs24h,
+		"tokens_24h":   tokens24h,
 	})
 }
 
