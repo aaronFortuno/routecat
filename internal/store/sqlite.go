@@ -53,7 +53,7 @@ func migrate(db *sql.DB) error {
 			key           TEXT PRIMARY KEY,
 			user_id       TEXT NOT NULL,
 			name          TEXT,
-			quota_daily   INTEGER DEFAULT 100,
+			quota_daily   INTEGER DEFAULT 10,
 			balance_msats INTEGER DEFAULT 0,
 			created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
 		);

@@ -160,7 +160,7 @@
       </tbody>
     </table>
   </div>
-  <div class="pricing-note">100 free requests per day. Lightning top-up coming soon.</div>
+  <div class="pricing-note">10 free playground requests per day. Top up with Lightning for API access.</div>
 </section>
 
 <section id="api">
@@ -171,7 +171,7 @@
   <div class="code-block">
 <span class="cmd">curl</span> -X POST https://route.cat/v1/auth/register \
   -d <span class="str">'{"name":"my app"}'</span>
-<span class="comment"># Returns: {"api_key": "rc_...", "quota_daily": 100}</span>
+<span class="comment"># Returns: {"api_key": "rc_...", "quota_daily": 10}</span>
   </div>
 
   <h3 style="margin-bottom:12px;color:var(--dim);font-size:14px;text-transform:uppercase;letter-spacing:0.5px">2. Send a request</h3>
@@ -199,14 +199,32 @@ response = client.chat.completions.create(
   <p class="subtitle">Get an API key. Top up with Lightning. Check your balance.</p>
   <div class="playground" style="margin-bottom:24px">
     <div id="acct-no-key">
-      <p style="color:var(--dim);margin-bottom:12px">Create a free API key to get started (100 requests/day).</p>
+      <p style="color:var(--dim);margin-bottom:16px">Create a free API key to try the playground (10 requests/day), or enter an existing key.</p>
       <div class="pg-row">
         <input id="acct-name" type="text" placeholder="App name (optional)" style="flex:1" />
         <button class="btn btn-primary" onclick="createKey()" style="flex:none">Create API Key</button>
       </div>
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+        <p style="color:var(--dim);font-size:14px;margin-bottom:8px">Already have a key?</p>
+        <div class="pg-row">
+          <input id="acct-login-key" type="text" placeholder="rc_..." style="flex:1;font-family:monospace;font-size:13px" />
+          <button class="btn btn-outline" onclick="loginWithKey()" style="flex:none">Log in</button>
+        </div>
+        <div id="acct-login-error" style="display:none;color:#ef4444;font-size:13px;margin-top:6px"></div>
+      </div>
+    </div>
+    <!-- Key reveal dialog (shown once on creation) -->
+    <div id="acct-key-reveal" style="display:none;padding:20px;background:var(--bg);border:2px solid var(--accent);border-radius:10px;margin-bottom:16px">
+      <p style="color:var(--accent);font-weight:700;font-size:15px;margin-bottom:8px">&#9888; Save your API Key now!</p>
+      <p style="color:var(--dim);font-size:13px;margin-bottom:12px">This key will not be shown again. If you lose it, you lose access to any funds deposited. Copy it and store it safely.</p>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="acct-key-copy" type="text" readonly style="flex:1;padding:10px;background:var(--bg2);color:var(--accent);border:1px solid var(--border);border-radius:6px;font-family:monospace;font-size:13px" />
+        <button class="btn btn-primary" onclick="copyKey()" id="acct-copy-btn" style="flex:none;padding:10px 18px">Copy</button>
+      </div>
+      <button class="btn btn-outline" onclick="dismissKeyReveal()" style="margin-top:12px;width:100%">I've saved my key — continue</button>
     </div>
     <div id="acct-has-key" style="display:none">
-      <div class="stat" style="margin-bottom:8px"><span class="stat-label">API Key</span><span class="stat-value" id="acct-key" style="font-family:monospace;font-size:13px;color:var(--accent);word-break:break-all;max-width:400px;text-align:right"></span></div>
+      <div class="stat" style="margin-bottom:8px"><span class="stat-label">API Key</span><span class="stat-value" id="acct-key" style="font-family:monospace;font-size:13px;color:var(--dim);word-break:break-all;max-width:400px;text-align:right"></span></div>
       <div class="stat" style="margin-bottom:8px"><span class="stat-label">Balance</span><span class="stat-value" id="acct-balance" style="color:var(--green);font-weight:700">0 sats</span></div>
       <div class="stat" style="margin-bottom:16px"><span class="stat-label">Free requests remaining</span><span class="stat-value" id="acct-free">-</span></div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -298,11 +316,13 @@ setInterval(loadStats, 30000);
 var _pgKey = localStorage.getItem('routecat-key') || '';
 var _pollInvoice = null;
 
+function maskKey(k) { return k ? k.substring(0, 6) + '...' + k.substring(k.length - 4) : ''; }
+
 function showAccountState() {
   if (_pgKey) {
     document.getElementById('acct-no-key').style.display = 'none';
     document.getElementById('acct-has-key').style.display = '';
-    document.getElementById('acct-key').textContent = _pgKey;
+    document.getElementById('acct-key').textContent = maskKey(_pgKey);
     refreshBalance();
   }
 }
@@ -312,10 +332,51 @@ async function createKey() {
   try {
     var r = await fetch('/v1/auth/register', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:name})});
     var d = await r.json();
+    if (d.error) { alert(d.error); return; }
     _pgKey = d.api_key;
     localStorage.setItem('routecat-key', _pgKey);
-    showAccountState();
+    // Show key reveal dialog
+    document.getElementById('acct-no-key').style.display = 'none';
+    document.getElementById('acct-key-reveal').style.display = '';
+    document.getElementById('acct-key-copy').value = _pgKey;
   } catch(e) { alert('Error: ' + e.message); }
+}
+
+function copyKey() {
+  var inp = document.getElementById('acct-key-copy');
+  inp.select(); document.execCommand('copy');
+  document.getElementById('acct-copy-btn').textContent = 'Copied!';
+  setTimeout(function() { document.getElementById('acct-copy-btn').textContent = 'Copy'; }, 2000);
+}
+
+function dismissKeyReveal() {
+  document.getElementById('acct-key-reveal').style.display = 'none';
+  showAccountState();
+}
+
+async function loginWithKey() {
+  var key = document.getElementById('acct-login-key').value.trim();
+  var errEl = document.getElementById('acct-login-error');
+  errEl.style.display = 'none';
+  if (!key || !key.startsWith('rc_')) {
+    errEl.textContent = 'Invalid key format — must start with rc_';
+    errEl.style.display = '';
+    return;
+  }
+  try {
+    var r = await fetch('/v1/auth/balance', {headers:{'Authorization':'Bearer ' + key}});
+    if (!r.ok) {
+      errEl.textContent = 'Key not found or invalid';
+      errEl.style.display = '';
+      return;
+    }
+    _pgKey = key;
+    localStorage.setItem('routecat-key', _pgKey);
+    showAccountState();
+  } catch(e) {
+    errEl.textContent = 'Connection error';
+    errEl.style.display = '';
+  }
 }
 
 async function refreshBalance() {
@@ -386,7 +447,7 @@ async function runPlayground() {
   try {
     var resp = await fetch('/v1/chat/completions', {
       method: 'POST',
-      headers: {'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json'},
+      headers: {'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json', 'X-Playground': 'true'},
       body: JSON.stringify({model: model, messages: [{role:'user', content: input}], stream: true})
     });
 

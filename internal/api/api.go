@@ -3,13 +3,14 @@
 package api
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"io"
 	"net/http"
 	"strings"
-
-	"crypto/rand"
-	"encoding/hex"
+	"sync"
+	"time"
 
 	"github.com/aaronFortuno/routecat/internal/billing"
 	"github.com/aaronFortuno/routecat/internal/router"
@@ -19,11 +20,36 @@ import (
 
 // HandleRegisterUser creates a new user API key.
 // POST /v1/auth/register with {"name": "my app"}
+// Rate limited: 3 registrations per hour per IP.
 func (a *API) HandleRegisterUser(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	// Rate limit: 3 keys/hour/IP
+	ip := r.RemoteAddr
+	if realIP := r.Header.Get("X-Real-Ip"); realIP != "" {
+		ip = realIP
+	}
+	a.regMu.Lock()
+	cutoff := time.Now().Add(-time.Hour)
+	reqs := a.regLimit[ip]
+	valid := reqs[:0]
+	for _, t := range reqs {
+		if t.After(cutoff) {
+			valid = append(valid, t)
+		}
+	}
+	if len(valid) >= 3 {
+		a.regLimit[ip] = valid
+		a.regMu.Unlock()
+		http.Error(w, `{"error":"too many registrations — try again later"}`, http.StatusTooManyRequests)
+		return
+	}
+	a.regLimit[ip] = append(valid, time.Now())
+	a.regMu.Unlock()
+
 	var req struct {
 		Name string `json:"name"`
 	}
@@ -44,7 +70,7 @@ func (a *API) HandleRegisterUser(w http.ResponseWriter, r *http.Request) {
 	key := "rc_" + hex.EncodeToString(b)
 	userID := uuid.New().String()
 
-	if err := a.db.CreateUserKey(key, userID, req.Name, 100); err != nil {
+	if err := a.db.CreateUserKey(key, userID, req.Name, 10); err != nil {
 		http.Error(w, `{"error":"failed to create key"}`, http.StatusInternalServerError)
 		return
 	}
@@ -54,7 +80,7 @@ func (a *API) HandleRegisterUser(w http.ResponseWriter, r *http.Request) {
 		"api_key":     key,
 		"user_id":     userID,
 		"name":        req.Name,
-		"quota_daily": 100,
+		"quota_daily": 10,
 	})
 }
 
@@ -70,16 +96,18 @@ type InvoiceCreator interface {
 
 // API handles public-facing inference requests.
 type API struct {
-	rt      *router.Router
-	bill    *billing.Engine
-	db      *store.DB
-	assign  JobAssigner
-	invoicer InvoiceCreator
+	rt        *router.Router
+	bill      *billing.Engine
+	db        *store.DB
+	assign    JobAssigner
+	invoicer  InvoiceCreator
+	regLimit  map[string][]time.Time // IP -> registration timestamps (rate limit)
+	regMu     sync.Mutex
 }
 
 // New creates the public API.
 func New(rt *router.Router, bill *billing.Engine, db *store.DB) *API {
-	return &API{rt: rt, bill: bill, db: db}
+	return &API{rt: rt, bill: bill, db: db, regLimit: make(map[string][]time.Time)}
 }
 
 // SetAssigner wires the gateway's job assignment function.
@@ -194,13 +222,20 @@ func (a *API) HandleChatCompletions(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":{"message":"invalid API key","type":"invalid_request_error"}}`, http.StatusUnauthorized)
 		return
 	}
-	// Check: free quota remaining OR positive balance
+	// Free tier only from playground (X-Playground header). API requires balance.
 	balance, _ := a.db.UserBalance(userKey)
-	if remaining <= 0 && balance <= 0 {
-		http.Error(w, `{"error":{"message":"daily quota exceeded and no balance — top up at /v1/auth/topup","type":"rate_limit_error"}}`, http.StatusTooManyRequests)
+	isPlayground := r.Header.Get("X-Playground") == "true"
+	if isPlayground && remaining > 0 {
+		// Free playground request — allowed
+	} else if balance > 0 {
+		// Paid request — allowed
+	} else if remaining > 0 && !isPlayground {
+		http.Error(w, `{"error":{"message":"free tier is playground-only — top up at /v1/auth/topup for API access","type":"rate_limit_error"}}`, http.StatusTooManyRequests)
+		return
+	} else {
+		http.Error(w, `{"error":{"message":"no balance — top up at /v1/auth/topup","type":"rate_limit_error"}}`, http.StatusTooManyRequests)
 		return
 	}
-	_ = remaining // billing deduction happens in gateway after job completes
 
 	// Read request body
 	body, err := io.ReadAll(r.Body)
