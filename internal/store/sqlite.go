@@ -131,6 +131,24 @@ type Payout struct {
 	ConfirmedAt  *time.Time
 }
 
+// NodeByAPIKey looks up a node by its API key.
+func (d *DB) NodeByAPIKey(apiKey string) (*Node, error) {
+	var n Node
+	err := d.db.QueryRow(`SELECT node_id, api_key, gpu, gpu_vendor, vram_total_mb, models, region, lightning_addr, redeem_threshold, free_tier_pct, version FROM nodes WHERE api_key=?`, apiKey).
+		Scan(&n.NodeID, &n.APIKey, &n.GPU, &n.GPUVendor, &n.VRAMTotalMB, &n.Models, &n.Region, &n.LightningAddr, &n.RedeemThreshold, &n.FreeTierPct, &n.Version)
+	if err != nil {
+		return nil, err
+	}
+	return &n, nil
+}
+
+// NodeEarningsTotal returns lifetime msats earned by a node.
+func (d *DB) NodeEarningsTotal(nodeID string) (int64, error) {
+	var v sql.NullInt64
+	err := d.db.QueryRow(`SELECT COALESCE(SUM(earned_msats),0) FROM jobs WHERE node_id=? AND status='complete'`, nodeID).Scan(&v)
+	return v.Int64, err
+}
+
 // RegisterNode inserts or updates a node.
 func (d *DB) RegisterNode(n Node) error {
 	_, err := d.db.Exec(`

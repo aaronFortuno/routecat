@@ -42,7 +42,7 @@ func main() {
 	}
 	defer db.Close()
 
-	// Lightning (optional at startup — gateway works without it, payouts queue)
+	// Lightning (optional — gateway works without it, payouts queue)
 	var ln lightning.Client
 	if *lndAddr != "" {
 		ln, err = lightning.NewLND(*lndAddr, *lndMacaroon, *lndTLS)
@@ -57,16 +57,20 @@ func main() {
 
 	// Core services
 	bill := billing.New(db, *feePct)
-	rt := router.New(db)
+	rt := router.New()
 	gw := gateway.New(db, rt, bill)
 	pub := api.New(rt, bill, db)
 
-	// HTTP server: gateway (nodes) + public API (users) + frontend
+	// Wire dependencies
+	rt.SetSource(gw)       // router reads live node state from gateway
+	pub.SetAssigner(gw)    // API sends jobs via gateway
+
+	// HTTP server
 	srv := gateway.NewServer(*addr, gw, pub, ln)
 	if err := srv.Start(); err != nil {
 		log.Fatalf("routecat: server: %v", err)
 	}
-	log.Printf("routecat: listening on %s", *addr)
+	log.Printf("routecat: listening on %s (fee %.1f%%)", *addr, *feePct)
 
 	// Wait for shutdown signal
 	sig := make(chan os.Signal, 1)

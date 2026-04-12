@@ -5,39 +5,97 @@ package router
 
 import (
 	"errors"
-
-	"github.com/aaronFortuno/routecat/internal/store"
+	"sync"
 )
 
 var ErrNoNode = errors.New("no available node for this model")
 
+// NodeInfo is a snapshot of a live node's state, provided by the gateway.
+type NodeInfo struct {
+	NodeID     string
+	Models     []string
+	VRAMFreeMB int
+	Region     string
+	QueueDepth int
+}
+
+// NodeSource provides live node state to the router.
+type NodeSource interface {
+	LiveNodeInfos() []NodeInfo
+}
+
 // Router selects provider nodes for incoming inference requests.
 type Router struct {
-	db *store.DB
+	mu     sync.RWMutex
+	source NodeSource
 }
 
 // New creates a Router.
-func New(db *store.DB) *Router {
-	return &Router{db: db}
+func New() *Router {
+	return &Router{}
 }
 
-// RouteRequest finds the best node for a given model and region.
-// Returns the node ID of the selected provider.
-// TODO: implement actual routing logic using connected node state,
-// not just DB records. This will use the gateway's live NodeConn map.
-func (r *Router) RouteRequest(model string, buyerRegion string) (nodeID string, err error) {
-	// Placeholder — will be wired to the gateway's live connection pool.
-	return "", ErrNoNode
+// SetSource wires the live node provider (gateway hub).
+func (r *Router) SetSource(s NodeSource) {
+	r.mu.Lock()
+	r.source = s
+	r.mu.Unlock()
 }
 
-// AvailableModels returns the set of models currently served by connected nodes.
+// RouteRequest finds the best node for a given model.
+// Selection: filter by model → sort by queue depth (lowest first) → pick first.
+func (r *Router) RouteRequest(model string) (nodeID string, err error) {
+	r.mu.RLock()
+	src := r.source
+	r.mu.RUnlock()
+	if src == nil {
+		return "", ErrNoNode
+	}
+
+	nodes := src.LiveNodeInfos()
+	var best *NodeInfo
+	for i := range nodes {
+		n := &nodes[i]
+		if !hasModel(n.Models, model) {
+			continue
+		}
+		if best == nil || n.QueueDepth < best.QueueDepth {
+			best = n
+		}
+	}
+	if best == nil {
+		return "", ErrNoNode
+	}
+	return best.NodeID, nil
+}
+
+// AvailableModels returns the deduplicated set of models across connected nodes.
 func (r *Router) AvailableModels() []string {
-	// TODO: aggregate from live connections
-	return nil
+	r.mu.RLock()
+	src := r.source
+	r.mu.RUnlock()
+	if src == nil {
+		return nil
+	}
+
+	seen := make(map[string]bool)
+	var out []string
+	for _, n := range src.LiveNodeInfos() {
+		for _, m := range n.Models {
+			if !seen[m] {
+				seen[m] = true
+				out = append(out, m)
+			}
+		}
+	}
+	return out
 }
 
-// QueueDepthGlobal returns total pending jobs across all nodes.
-func (r *Router) QueueDepthGlobal() int {
-	// TODO: sum from live connections
-	return 0
+func hasModel(models []string, target string) bool {
+	for _, m := range models {
+		if m == target {
+			return true
+		}
+	}
+	return false
 }
