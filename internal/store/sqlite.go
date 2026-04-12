@@ -233,12 +233,13 @@ func (d *DB) RecordPayout(nodeID string, amountMsats int64, paymentHash, status 
 // PendingPayouts returns nodes whose balance exceeds their redeem threshold.
 func (d *DB) PendingPayouts() ([]Node, error) {
 	rows, err := d.db.Query(`
-		SELECT n.node_id, n.lightning_addr, n.redeem_threshold,
-			COALESCE((SELECT SUM(earned_msats) FROM jobs WHERE node_id=n.node_id AND status='complete'), 0) -
-			COALESCE((SELECT SUM(amount_msats) FROM payouts WHERE node_id=n.node_id AND status IN ('sent','confirmed')), 0) AS balance
-		FROM nodes n
-		WHERE n.lightning_addr != ''
-		HAVING balance >= n.redeem_threshold * 1000`)
+		SELECT node_id, lightning_addr, redeem_threshold, balance FROM (
+			SELECT n.node_id, n.lightning_addr, n.redeem_threshold,
+				COALESCE((SELECT SUM(earned_msats) FROM jobs WHERE node_id=n.node_id AND status='complete'), 0) -
+				COALESCE((SELECT SUM(amount_msats) FROM payouts WHERE node_id=n.node_id AND status IN ('sent','confirmed')), 0) AS balance
+			FROM nodes n
+			WHERE n.lightning_addr != ''
+		) WHERE balance >= redeem_threshold * 1000`)
 	if err != nil {
 		return nil, err
 	}

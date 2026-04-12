@@ -362,7 +362,6 @@ func (g *Gateway) handleProxyChunk(nc *NodeConn, msg WSMsg) {
 				break
 			}
 		}
-		log.Printf("routecat: [debug] job %s usage chunk captured: %s", msg.JobID, job.LastChunk)
 	}
 	select {
 	case job.ResponseCh <- []byte(msg.Data):
