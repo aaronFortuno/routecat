@@ -16,8 +16,8 @@
   nav { display: flex; justify-content: space-between; align-items: center; padding: 18px 36px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(10,10,15,0.95); backdrop-filter: blur(10px); z-index: 100; }
   .nav-logo { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
   .nav-logo span { color: var(--cat); }
-  .logo-img { height: 36px; filter: invert(1); }
-  .hero-logo { height: 160px; filter: invert(1); margin-bottom: 20px; }
+  .logo-img { height: 36px; filter: invert(1); mix-blend-mode: screen; }
+  .hero-logo { height: 160px; filter: invert(1); mix-blend-mode: screen; margin-bottom: 20px; }
   .nav-links { display: flex; gap: 24px; font-size: 15px; }
   .nav-links a { color: var(--dim); }
   .nav-links a:hover { color: var(--text); text-decoration: none; }
@@ -85,7 +85,7 @@
 <body>
 
 <nav>
-  <div class="nav-logo"><img src="/logo.png" alt="RouteCat" class="logo-img"></div>
+  <div class="nav-logo"><img src="/logo.png" alt="RouteCat" class="logo-img"> route<span>cat</span></div>
   <div class="nav-links">
     <a href="#features">Features</a>
     <a href="#pricing">Pricing</a>
@@ -281,7 +281,7 @@ gateway = <span class="str">https://route.cat</span>
 
 <footer>
   <p>RouteCat is <a href="https://github.com/aaronFortuno/routecat">open source</a> under MIT license. Built with Go, Lightning, and community GPUs.</p>
-  <p style="margin-top:8px"><img src="/logo.png" alt="RouteCat" style="height:24px;filter:invert(1);vertical-align:middle"> route.cat</p>
+  <p style="margin-top:8px"><img src="/logo.png" alt="RouteCat" style="height:24px;filter:invert(1);mix-blend-mode:screen;vertical-align:middle"> route.cat</p>
 </footer>
 
 <script>
