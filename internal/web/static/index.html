@@ -280,17 +280,29 @@ response = client.chat.completions.create(
       <div class="stat" style="margin-bottom:16px"><span class="stat-label">Free requests remaining</span><span class="stat-value" id="acct-free">-</span></div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <span style="font-size:14px;color:var(--dim)">Top up:</span>
-        <button class="btn btn-outline" onclick="topUp(100)" style="padding:6px 14px;font-size:13px">100 sats</button>
-        <button class="btn btn-outline" onclick="topUp(500)" style="padding:6px 14px;font-size:13px">500 sats</button>
-        <button class="btn btn-outline" onclick="topUp(1000)" style="padding:6px 14px;font-size:13px">1,000 sats</button>
-        <button class="btn btn-outline" onclick="topUp(5000)" style="padding:6px 14px;font-size:13px">5,000 sats</button>
+        <button class="btn btn-outline" onclick="topUp(100)" style="padding:6px 14px;font-size:13px">100</button>
+        <button class="btn btn-outline" onclick="topUp(500)" style="padding:6px 14px;font-size:13px">500</button>
+        <button class="btn btn-outline" onclick="topUp(1000)" style="padding:6px 14px;font-size:13px">1K</button>
+        <button class="btn btn-outline" onclick="topUp(5000)" style="padding:6px 14px;font-size:13px">5K</button>
+        <div style="display:flex;align-items:center;gap:4px">
+          <input id="acct-custom-sats" type="number" min="10" max="100000" placeholder="sats" style="width:80px;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:13px" />
+          <button class="btn btn-primary" onclick="topUp(parseInt(document.getElementById('acct-custom-sats').value)||0)" style="padding:6px 12px;font-size:13px">Top up</button>
+        </div>
       </div>
       <div id="acct-invoice" style="display:none;margin-top:16px;padding:16px;background:var(--bg);border:1px solid var(--border);border-radius:10px">
-        <p style="font-size:14px;color:var(--dim);margin-bottom:8px">Pay this Lightning invoice:</p>
-        <textarea id="acct-bolt11" readonly style="width:100%;height:60px;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px;font-size:11px;font-family:monospace;resize:none;box-sizing:border-box"></textarea>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
-          <span id="acct-inv-status" style="font-size:13px;color:var(--dim)">Waiting for payment...</span>
-          <button class="btn btn-outline" onclick="copyInvoice()" style="padding:4px 12px;font-size:12px">Copy</button>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+          <div style="flex:1;min-width:250px">
+            <p style="font-size:14px;color:var(--dim);margin-bottom:8px">Pay this Lightning invoice:</p>
+            <textarea id="acct-bolt11" readonly style="width:100%;height:80px;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px;font-size:11px;font-family:monospace;resize:none;box-sizing:border-box"></textarea>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+              <span id="acct-inv-status" style="font-size:13px;color:var(--dim)">Waiting for payment...</span>
+              <button class="btn btn-outline" onclick="copyInvoice()" style="padding:4px 12px;font-size:12px">Copy</button>
+            </div>
+          </div>
+          <div style="flex-shrink:0;text-align:center">
+            <p style="font-size:12px;color:var(--dim);margin-bottom:6px">Scan to pay</p>
+            <img id="acct-qr" style="width:180px;height:180px;border-radius:8px;background:#fff;display:none" />
+          </div>
         </div>
       </div>
     </div>
@@ -577,14 +589,19 @@ async function refreshBalance() {
 
 async function topUp(sats) {
   if (!_pgKey) return;
+  if (!sats || sats < 10 || sats > 100000) { alert('Amount must be between 10 and 100,000 sats'); return; }
   try {
     var r = await fetch('/v1/auth/topup', {method:'POST', headers:{'Authorization':'Bearer ' + _pgKey, 'Content-Type':'application/json'}, body:JSON.stringify({amount_sats:sats})});
     var d = await r.json();
     if (d.error) { alert(d.error); return; }
     document.getElementById('acct-bolt11').value = d.invoice;
     document.getElementById('acct-invoice').style.display = '';
-    document.getElementById('acct-inv-status').textContent = 'Waiting for payment...';
+    document.getElementById('acct-inv-status').textContent = 'Waiting for payment... (' + sats + ' sats)';
     document.getElementById('acct-inv-status').style.color = 'var(--dim)';
+    // QR code via public API (no dependencies)
+    var qrImg = document.getElementById('acct-qr');
+    qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent(d.invoice.toUpperCase());
+    qrImg.style.display = '';
     // Poll for payment
     if (_pollInvoice) clearInterval(_pollInvoice);
     _pollInvoice = setInterval(async function() {
@@ -594,6 +611,7 @@ async function topUp(sats) {
       if (b.balance_sats > 0) {
         document.getElementById('acct-inv-status').textContent = 'Payment received!';
         document.getElementById('acct-inv-status').style.color = 'var(--green)';
+        document.getElementById('acct-qr').style.display = 'none';
         clearInterval(_pollInvoice);
         _pollInvoice = null;
         setTimeout(function() { document.getElementById('acct-invoice').style.display = 'none'; }, 3000);
