@@ -112,7 +112,7 @@
   <div class="stat-item"><div class="stat-num" id="st-models">-</div><div class="stat-label" data-i18n="stats.models">Models available</div></div>
   <div class="stat-item"><div class="stat-num" id="st-jobs-24h">-</div><div class="stat-label" data-i18n="stats.jobs">Jobs (24h)</div></div>
   <div class="stat-item"><div class="stat-num" id="st-tokens-24h">-</div><div class="stat-label" data-i18n="stats.tokens">Tokens (24h)</div></div>
-  <div class="stat-item"><div class="stat-num" id="st-fee">5%</div><div class="stat-label" data-i18n="stats.fee">Gateway fee</div></div>
+  <div class="stat-item"><div class="stat-num" id="st-fee">95%</div><div class="stat-label" data-i18n="stats.fee">Providers keep</div></div>
 </div>
 
 <section id="features">
@@ -181,6 +181,37 @@
     </table>
   </div>
   <div class="pricing-note" data-i18n="pricing.note">10 free playground requests per day. Top up with Lightning for API access.</div>
+
+  <!-- Token calculator -->
+  <div style="margin-top:28px;padding:24px;background:var(--bg2);border:1px solid var(--border);border-radius:12px">
+    <h3 style="font-size:16px;font-weight:600;margin-bottom:16px;color:var(--text)" data-i18n="calc.title">What can you do with your sats?</h3>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+      <div style="flex:1;min-width:200px">
+        <label style="font-size:13px;color:var(--dim);display:block;margin-bottom:4px" data-i18n="calc.budget">Budget (sats)</label>
+        <input type="range" id="calc-sats" min="10" max="5000" step="10" value="500" oninput="updateCalc()" style="width:100%;accent-color:var(--accent);cursor:pointer" />
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--dim);margin-top:2px"><span>10</span><span id="calc-sats-val" style="color:var(--accent);font-weight:700;font-size:14px">500 sats</span><span>5,000</span></div>
+      </div>
+      <div style="flex:1;min-width:200px">
+        <label style="font-size:13px;color:var(--dim);display:block;margin-bottom:4px" data-i18n="calc.model">Model</label>
+        <select id="calc-model" onchange="updateCalc()" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;cursor:pointer"></select>
+      </div>
+    </div>
+    <div id="calc-result" style="margin-top:16px;padding:16px;background:var(--bg);border-radius:8px;display:flex;gap:24px;flex-wrap:wrap">
+      <div style="text-align:center;flex:1;min-width:120px">
+        <div id="calc-tokens" style="font-size:28px;font-weight:700;color:var(--accent)">—</div>
+        <div style="font-size:13px;color:var(--dim)" data-i18n="calc.output_tokens">output tokens</div>
+      </div>
+      <div style="text-align:center;flex:1;min-width:120px">
+        <div id="calc-words" style="font-size:28px;font-weight:700;color:var(--green)">—</div>
+        <div style="font-size:13px;color:var(--dim)" data-i18n="calc.words">~ words</div>
+      </div>
+      <div style="text-align:center;flex:1;min-width:120px">
+        <div id="calc-pages" style="font-size:28px;font-weight:700;color:var(--text)">—</div>
+        <div style="font-size:13px;color:var(--dim)" data-i18n="calc.pages">~ pages</div>
+      </div>
+    </div>
+    <div style="margin-top:8px;font-size:12px;color:var(--dim)" data-i18n="calc.note">Estimate based on output tokens. Actual usage depends on prompt length and response complexity.</div>
+  </div>
 </section>
 
 <section id="api">
@@ -390,6 +421,9 @@ async function loadStats() {
       document.getElementById('pricing-body').innerHTML = rows;
     }
 
+    // Calculator
+    updateCalcModels(models);
+
     // Playground model selector (sorted by price desc, with pricing)
     var sel = document.getElementById('pg-model');
     sel.innerHTML = models.sort(function(a,b) {
@@ -406,6 +440,50 @@ async function loadStats() {
 }
 loadStats();
 setInterval(loadStats, 30000);
+
+// ── Token calculator ──────────────────────────────────────────
+var _calcModels = [];
+function updateCalcModels(models) {
+  _calcModels = models;
+  var sel = document.getElementById('calc-model');
+  sel.innerHTML = models.sort(function(a,b) {
+    var pa = (a.routecat_pricing || {}).per_m_output_usd || 0;
+    var pb = (b.routecat_pricing || {}).per_m_output_usd || 0;
+    return pb - pa;
+  }).map(function(m) {
+    var p = m.routecat_pricing;
+    var price = p ? '$' + p.per_m_output_usd.toFixed(3) + '/M out' : '';
+    return '<option value="' + m.id + '" data-in="' + (p?p.per_m_input_usd:0.01) + '" data-out="' + (p?p.per_m_output_usd:0.03) + '">' + m.id + (price ? '  (' + price + ')' : '') + '</option>';
+  }).join('');
+  updateCalc();
+}
+
+function updateCalc() {
+  var sats = parseInt(document.getElementById('calc-sats').value);
+  document.getElementById('calc-sats-val').textContent = sats.toLocaleString() + ' sats';
+  var sel = document.getElementById('calc-model');
+  var opt = sel.options[sel.selectedIndex];
+  if (!opt) return;
+  var priceOut = parseFloat(opt.getAttribute('data-out'));
+  if (!priceOut || priceOut <= 0) return;
+
+  // Convert sats to USD: sats / 100,000,000 * btcPrice
+  var btcPrice = 70000; // fallback
+  try { btcPrice = parseFloat(document.getElementById('st-fee').closest('.stats-bar').querySelector('#st-nodes').textContent) > 0 ? 70000 : 70000; } catch(e) {}
+  // Fetch live BTC price from our stats
+  fetch('/v1/stats').then(function(r){return r.json()}).then(function(d){ if(d.btc_usd) btcPrice = d.btc_usd; doCalc(sats, priceOut, btcPrice); }).catch(function(){ doCalc(sats, priceOut, btcPrice); });
+}
+
+function doCalc(sats, pricePerMOut, btcPrice) {
+  var usd = sats / 100000000 * btcPrice;
+  var tokens = Math.floor(usd / pricePerMOut * 1000000);
+  var words = Math.floor(tokens * 0.75); // ~0.75 words per token
+  var pages = Math.round(words / 300 * 10) / 10; // ~300 words per page
+
+  document.getElementById('calc-tokens').textContent = tokens >= 1000000 ? (tokens/1000000).toFixed(1) + 'M' : tokens >= 1000 ? (tokens/1000).toFixed(0) + 'K' : tokens;
+  document.getElementById('calc-words').textContent = words >= 1000000 ? (words/1000000).toFixed(1) + 'M' : words >= 1000 ? (words/1000).toFixed(0) + 'K' : words;
+  document.getElementById('calc-pages').textContent = pages >= 100 ? Math.round(pages) : pages.toFixed(1);
+}
 
 // ── Account management ──────────────────────────────��───────────
 var _pgKey = localStorage.getItem('routecat-key') || '';
@@ -611,6 +689,10 @@ var _i18n = {
     "prov.title": "Executa un node", "prov.sub": "Tens una GPU? Guanya Bitcoin servint infer\u00e8ncia.",
     "nav.feat": "Caracter\u00edstiques", "nav.price": "Preus", "nav.api": "API", "nav.acct": "Compte", "nav.pg": "Playground",
     "api.title": "API", "api.sub": "Compatible amb OpenAI. Funciona amb qualsevol SDK o curl.",
+    "calc.title": "Qu\u00e8 pots fer amb els teus sats?", "calc.budget": "Pressupost (sats)", "calc.model": "Model",
+    "calc.output_tokens": "tokens de sortida", "calc.words": "~ paraules", "calc.pages": "~ p\u00e0gines",
+    "calc.note": "Estimaci\u00f3 basada en tokens de sortida. L'\u00fas real dep\u00e8n del prompt i la complexitat de la resposta.",
+    "stats.fee": "Es queda el node",
     "try": "Prova-ho", "api.docs": "Docs API", "source": "Codi font", "send": "Enviar"
   },
   es: {
@@ -635,6 +717,10 @@ var _i18n = {
     "prov.title": "Ejecuta un nodo", "prov.sub": "\u00bfTienes una GPU? Gana Bitcoin sirviendo inferencia.",
     "nav.feat": "Caracter\u00edsticas", "nav.price": "Precios", "nav.api": "API", "nav.acct": "Cuenta", "nav.pg": "Playground",
     "api.title": "API", "api.sub": "Compatible con OpenAI. Funciona con cualquier SDK o curl.",
+    "calc.title": "\u00bfQu\u00e9 puedes hacer con tus sats?", "calc.budget": "Presupuesto (sats)", "calc.model": "Modelo",
+    "calc.output_tokens": "tokens de salida", "calc.words": "~ palabras", "calc.pages": "~ p\u00e1ginas",
+    "calc.note": "Estimaci\u00f3n basada en tokens de salida. El uso real depende del prompt y la complejidad de la respuesta.",
+    "stats.fee": "Se queda el nodo",
     "try": "Pru\u00e9balo", "api.docs": "Docs API", "source": "C\u00f3digo fuente", "send": "Enviar"
   }
 };
