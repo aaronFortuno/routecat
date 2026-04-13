@@ -81,7 +81,8 @@ func SecurityMiddleware(rl *RateLimiter, maxBodyBytes int64, next http.Handler) 
 		// Skip rate limiting for public read-only endpoints and static files
 		path := r.URL.Path
 		if path == "/" || path == "/v1/models" || path == "/v1/stats" || path == "/v1/audit" ||
-			strings.HasSuffix(path, ".svg") || strings.HasSuffix(path, ".png") || strings.HasSuffix(path, ".css") || strings.HasSuffix(path, ".js") {
+			strings.HasPrefix(path, "/docs/") || strings.HasPrefix(path, "/locales/") ||
+			strings.HasSuffix(path, ".svg") || strings.HasSuffix(path, ".png") || strings.HasSuffix(path, ".css") || strings.HasSuffix(path, ".js") || strings.HasSuffix(path, ".json") {
 			next.ServeHTTP(w, r)
 			return
 		}

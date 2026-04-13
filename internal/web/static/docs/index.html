@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RouteCat API Documentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/docs/docs.css">
+  <link rel="icon" href="/logo.svg" type="image/svg+xml">
+</head>
+<body>
+
+<!-- Mobile top bar -->
+<div class="mobile-nav-toggle">
+  <button class="hamburger" onclick="toggleSidebar()" aria-label="Toggle navigation">&#9776;</button>
+  <span class="mobile-title" data-i18n="docs.title">RouteCat Docs</span>
+</div>
+
+<!-- Backdrop for mobile sidebar -->
+<div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
+
+<!-- Sidebar -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <a href="/">
+      <span class="logo-icon">&#128049;</span>
+      <span>RouteCat</span>
+      <span class="badge" data-i18n="docs.badge">Docs</span>
+    </a>
+  </div>
+
+  <div class="sidebar-nav">
+    <div class="nav-group">
+      <div class="nav-group-title" data-i18n="docs.nav.overview">Overview</div>
+      <a href="#introduction" data-i18n="docs.nav.introduction">Introduction</a>
+      <a href="#quickstart" data-i18n="docs.nav.quickstart">Quick Start</a>
+      <a href="#authentication" data-i18n="docs.nav.authentication">Authentication</a>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title" data-i18n="docs.nav.api_reference">API Reference</div>
+      <a href="#chat-completions" data-i18n="docs.nav.chat_completions">Chat Completions</a>
+      <a href="#models" data-i18n="docs.nav.models">List Models</a>
+      <a href="#register" data-i18n="docs.nav.register">Register</a>
+      <a href="#topup" data-i18n="docs.nav.topup">Top Up Balance</a>
+      <a href="#balance" data-i18n="docs.nav.balance">Check Balance</a>
+      <a href="#stats" data-i18n="docs.nav.stats">Gateway Stats</a>
+      <a href="#audit" data-i18n="docs.nav.audit">Audit Log</a>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title" data-i18n="docs.nav.guides">Guides</div>
+      <a href="#streaming" data-i18n="docs.nav.streaming">Streaming</a>
+      <a href="#billing" data-i18n="docs.nav.billing">Billing</a>
+      <a href="#provider-guide" data-i18n="docs.nav.provider_guide">Provider Guide</a>
+      <a href="#errors" data-i18n="docs.nav.errors">Errors</a>
+    </div>
+  </div>
+
+  <div class="sidebar-footer">
+    <a href="https://github.com/aaronFortuno/routecat" target="_blank" rel="noopener">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      <span data-i18n="docs.nav.github">GitHub</span>
+    </a>
+  </div>
+</nav>
+
+<!-- Main content -->
+<main class="main">
+  <div class="content">
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- Introduction                                -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="introduction">
+      <h1 data-i18n="docs.intro.title">RouteCat API Documentation</h1>
+      <p class="subtitle" data-i18n="docs.intro.subtitle">
+        The open-source AI inference gateway. Access any model, pay per token with Bitcoin Lightning, powered by community GPU providers.
+      </p>
+
+      <p data-i18n="docs.intro.p1">
+        <strong>RouteCat</strong> is an open-source gateway that routes AI inference requests to a decentralized network of GPU providers running <a href="https://github.com/aaronFortuno/owlrun">Owlrun</a> nodes. It exposes an <strong>OpenAI-compatible API</strong>, so any existing client or library works out of the box.
+      </p>
+
+      <p data-i18n="docs.intro.p2">
+        Providers earn Bitcoin for serving requests. Users pay per token with Lightning Network micropayments &mdash; no subscriptions, no vendor lock-in.
+      </p>
+
+      <div class="callout callout-info">
+        <div class="callout-title" data-i18n="docs.intro.base_url_label">Base URL</div>
+        <p><code>https://route.cat</code></p>
+      </div>
+
+      <p data-i18n="docs.intro.p3">
+        All endpoints are relative to this base URL. The API follows the OpenAI specification where applicable, so you can use the official <code>openai</code> Python/JS libraries by changing the <code>base_url</code>.
+      </p>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- Quick Start                                 -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="quickstart">
+      <h2 data-i18n="docs.quickstart.title">Quick Start</h2>
+      <p data-i18n="docs.quickstart.desc">Get up and running in three steps.</p>
+
+      <div class="steps">
+        <div class="step">
+          <h4 data-i18n="docs.quickstart.step1_title">Get an API key</h4>
+          <p data-i18n="docs.quickstart.step1_desc">Register for a free key. You get 10 free requests per day with no payment required.</p>
+          <div class="code-block">
+            <span class="code-label">curl</span>
+            <pre><code><span class="cmd">curl</span> <span class="str">-X POST</span> https://route.cat/v1/auth/register \
+  <span class="str">-H</span> <span class="str">"Content-Type: application/json"</span> \
+  <span class="str">-d</span> <span class="str">'{"name": "my app"}'</span></code></pre>
+          </div>
+        </div>
+
+        <div class="step">
+          <h4 data-i18n="docs.quickstart.step2_title">Send a request</h4>
+          <p data-i18n="docs.quickstart.step2_desc">Use your API key to call the chat completions endpoint.</p>
+          <div class="code-block">
+            <span class="code-label">curl</span>
+            <pre><code><span class="cmd">curl</span> https://route.cat/v1/chat/completions \
+  <span class="str">-H</span> <span class="str">"Authorization: Bearer rc_your_key_here"</span> \
+  <span class="str">-H</span> <span class="str">"Content-Type: application/json"</span> \
+  <span class="str">-d</span> <span class="str">'{
+    "model": "llama3.1:8b",
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }'</span></code></pre>
+          </div>
+        </div>
+
+        <div class="step">
+          <h4 data-i18n="docs.quickstart.step3_title">Read the response</h4>
+          <p data-i18n="docs.quickstart.step3_desc">You get back a standard OpenAI-compatible response.</p>
+          <div class="code-block">
+            <span class="code-label">Response</span>
+            <pre><code>{
+  <span class="key">"id"</span>: <span class="str">"chatcmpl-abc123"</span>,
+  <span class="key">"object"</span>: <span class="str">"chat.completion"</span>,
+  <span class="key">"model"</span>: <span class="str">"llama3.1:8b"</span>,
+  <span class="key">"choices"</span>: [{
+    <span class="key">"index"</span>: <span class="num">0</span>,
+    <span class="key">"message"</span>: {
+      <span class="key">"role"</span>: <span class="str">"assistant"</span>,
+      <span class="key">"content"</span>: <span class="str">"Hello! How can I help you today?"</span>
+    },
+    <span class="key">"finish_reason"</span>: <span class="str">"stop"</span>
+  }],
+  <span class="key">"usage"</span>: {
+    <span class="key">"prompt_tokens"</span>: <span class="num">11</span>,
+    <span class="key">"completion_tokens"</span>: <span class="num">9</span>,
+    <span class="key">"total_tokens"</span>: <span class="num">20</span>
+  }
+}</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout callout-tip">
+        <div class="callout-title" data-i18n="docs.quickstart.tip_title">Tip</div>
+        <p data-i18n="docs.quickstart.tip_body">You can use the official <code>openai</code> Python library by setting <code>base_url="https://route.cat/v1"</code> and your RouteCat API key.</p>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- Authentication                              -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="authentication">
+      <h2 data-i18n="docs.auth.title">Authentication</h2>
+
+      <p data-i18n="docs.auth.p1">
+        All authenticated requests require a valid API key sent via the <code>Authorization</code> header using the Bearer scheme.
+      </p>
+
+      <div class="code-block">
+        <span class="code-label">Header</span>
+        <pre><code>Authorization: Bearer rc_your_key_here</code></pre>
+      </div>
+
+      <h3 data-i18n="docs.auth.key_format_title">Key Format</h3>
+      <p data-i18n="docs.auth.key_format_desc">
+        API keys always start with the <code>rc_</code> prefix followed by a random alphanumeric string. Keep your key secret &mdash; anyone with it can make requests on your behalf.
+      </p>
+
+      <h3 data-i18n="docs.auth.tiers_title">Access Tiers</h3>
+      <table>
+        <thead>
+          <tr>
+            <th data-i18n="docs.auth.tier">Tier</th>
+            <th data-i18n="docs.auth.daily_quota">Daily Quota</th>
+            <th data-i18n="docs.auth.rate_limit">Rate Limit</th>
+            <th data-i18n="docs.auth.requirements">Requirements</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-i18n="docs.auth.free">Free</td>
+            <td data-i18n="docs.auth.free_quota">10 requests/day</td>
+            <td data-i18n="docs.auth.free_rate">60 req/min</td>
+            <td data-i18n="docs.auth.free_req">API key only</td>
+          </tr>
+          <tr>
+            <td data-i18n="docs.auth.paid">Paid</td>
+            <td data-i18n="docs.auth.paid_quota">Unlimited (balance-based)</td>
+            <td data-i18n="docs.auth.paid_rate">60 req/min</td>
+            <td data-i18n="docs.auth.paid_req">API key + sats balance</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout callout-warn">
+        <div class="callout-title" data-i18n="docs.auth.rate_limit_warn_title">Rate Limiting</div>
+        <p data-i18n="docs.auth.rate_limit_warn_body">All API keys are rate-limited to <strong>60 requests per minute</strong>. Exceeding this limit returns a <code>429</code> status code. Free-tier keys are additionally capped at 10 requests per day.</p>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- POST /v1/chat/completions                   -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="chat-completions">
+      <h2 data-i18n="docs.endpoints.title">Endpoints</h2>
+
+      <div class="endpoint-header">
+        <span class="method method-post">POST</span>
+        <span class="endpoint-path">/v1/chat/completions</span>
+      </div>
+
+      <p data-i18n="docs.chat.desc">
+        Generate a model response for a conversation. This is the primary endpoint and is compatible with the OpenAI Chat Completions API.
+      </p>
+
+      <h3 data-i18n="docs.chat.params_title">Request Body</h3>
+
+      <div class="param">
+        <span class="param-name">model</span>
+        <span class="param-type">string</span>
+        <span class="param-required">required</span>
+        <div class="param-desc" data-i18n="docs.chat.param_model">The model ID to use (e.g. <code>llama3.1:8b</code>, <code>mistral:7b</code>, <code>gemma2:9b</code>). Use the <a href="#models">/v1/models</a> endpoint to list available models.</div>
+      </div>
+
+      <div class="param">
+        <span class="param-name">messages</span>
+        <span class="param-type">array</span>
+        <span class="param-required">required</span>
+        <div class="param-desc" data-i18n="docs.chat.param_messages">An array of message objects. Each message has a <code>role</code> (<code>"system"</code>, <code>"user"</code>, or <code>"assistant"</code>) and <code>content</code> (string).</div>
+      </div>
+
+      <div class="param">
+        <span class="param-name">temperature</span>
+        <span class="param-type">number</span>
+        <span class="param-optional">optional</span>
+        <div class="param-desc" data-i18n="docs.chat.param_temperature">Sampling temperature between 0 and 2. Lower values are more focused, higher values more creative. Defaults to <code>0.7</code>.</div>
+      </div>
+
+      <div class="param">
+        <span class="param-name">max_tokens</span>
+        <span class="param-type">integer</span>
+        <span class="param-optional">optional</span>
+        <div class="param-desc" data-i18n="docs.chat.param_max_tokens">Maximum number of tokens to generate. Defaults to the model's maximum context length.</div>
+      </div>
+
+      <div class="param">
+        <span class="param-name">stream</span>
+        <span class="param-type">boolean</span>
+        <span class="param-optional">optional</span>
+        <div class="param-desc" data-i18n="docs.chat.param_stream">If <code>true</code>, response is streamed using Server-Sent Events (SSE). See <a href="#streaming">Streaming</a>.</div>
+      </div>
+
+      <div class="param">
+        <span class="param-name">top_p</span>
+        <span class="param-type">number</span>
+        <span class="param-optional">optional</span>
+        <div class="param-desc" data-i18n="docs.chat.param_top_p">Nucleus sampling. Defaults to <code>1.0</code>.</div>
+      </div>
+
+      <h3 data-i18n="docs.chat.example_title">Example</h3>
+
+      <div class="code-block">
+        <span class="code-label">curl</span>
+        <pre><code><span class="cmd">curl</span> https://route.cat/v1/chat/completions \
+  <span class="str">-H</span> <span class="str">"Authorization: Bearer rc_your_key_here"</span> \
+  <span class="str">-H</span> <span class="str">"Content-Type: application/json"</span> \
+  <span class="str">-d</span> <span class="str">'{
+    "model": "llama3.1:8b",
+    "messages": [
+      {"role": "system", "content": "You are a helpful assistant."},
+      {"role": "user", "content": "Explain quantum computing in one sentence."}
+    ],
+    "temperature": 0.5,
+    "max_tokens": 100
+  }'</span></code></pre>
+      </div>
+
+      <div class="code-block">
+        <span class="code-label">Python</span>
+        <pre><code><span class="kw">from</span> openai <span class="kw">import</span> OpenAI
+
+client = OpenAI(
+    <span class="param-name">base_url</span>=<span class="str">"https://route.cat/v1"</span>,
+    <span class="param-name">api_key</span>=<span class="str">"rc_your_key_here"</span>,
+)
+
+response = client.chat.completions.<span class="fn">create</span>(
+    <span class="param-name">model</span>=<span class="str">"llama3.1:8b"</span>,
+    <span class="param-name">messages</span>=[
+        {<span class="str">"role"</span>: <span class="str">"system"</span>, <span class="str">"content"</span>: <span class="str">"You are a helpful assistant."</span>},
+        {<span class="str">"role"</span>: <span class="str">"user"</span>, <span class="str">"content"</span>: <span class="str">"Explain quantum computing in one sentence."</span>},
+    ],
+    <span class="param-name">temperature</span>=<span class="num">0.5</span>,
+    <span class="param-name">max_tokens</span>=<span class="num">100</span>,
+)
+
+<span class="fn">print</span>(response.choices[<span class="num">0</span>].message.content)</code></pre>
+      </div>
+
+      <h3 data-i18n="docs.chat.response_title">Response</h3>
+
+      <div class="code-block">
+        <span class="code-label">JSON</span>
+        <pre><code>{
+  <span class="key">"id"</span>: <span class="str">"chatcmpl-abc123"</span>,
+  <span class="key">"object"</span>: <span class="str">"chat.completion"</span>,
+  <span class="key">"created"</span>: <span class="num">1713000000</span>,
+  <span class="key">"model"</span>: <span class="str">"llama3.1:8b"</span>,
+  <span class="key">"choices"</span>: [
+    {
+      <span class="key">"index"</span>: <span class="num">0</span>,
+      <span class="key">"message"</span>: {
+        <span class="key">"role"</span>: <span class="str">"assistant"</span>,
+        <span class="key">"content"</span>: <span class="str">"Quantum computing uses qubits that can exist in multiple states simultaneously, enabling it to solve certain problems exponentially faster than classical computers."</span>
+      },
+      <span class="key">"finish_reason"</span>: <span class="str">"stop"</span>
+    }
+  ],
+  <span class="key">"usage"</span>: {
+    <span class="key">"prompt_tokens"</span>: <span class="num">24</span>,
+    <span class="key">"completion_tokens"</span>: <span class="num">28</span>,
+    <span class="key">"total_tokens"</span>: <span class="num">52</span>
+  }
+}</code></pre>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- GET /v1/models                              -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="models">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/v1/models</span>
+      </div>
+
+      <p data-i18n="docs.models.desc">
+        Returns a list of models currently available on the network, along with per-token pricing information.
+      </p>
+
+      <p data-i18n="docs.models.auth_note">No authentication required.</p>
+
+      <h3 data-i18n="docs.models.example_title">Example Response</h3>
+
+      <div class="code-block">
+        <span class="code-label">JSON</span>
+        <pre><code>{
+  <span class="key">"object"</span>: <span class="str">"list"</span>,
+  <span class="key">"data"</span>: [
+    {
+      <span class="key">"id"</span>: <span class="str">"llama3.1:8b"</span>,
+      <span class="key">"object"</span>: <span class="str">"model"</span>,
+      <span class="key">"owned_by"</span>: <span class="str">"community"</span>,
+      <span class="key">"routecat_pricing"</span>: {
+        <span class="key">"input_per_1m_tokens_usd"</span>: <span class="num">0.05</span>,
+        <span class="key">"output_per_1m_tokens_usd"</span>: <span class="num">0.10</span>,
+        <span class="key">"input_per_1m_tokens_sats"</span>: <span class="num">50</span>,
+        <span class="key">"output_per_1m_tokens_sats"</span>: <span class="num">100</span>
+      }
+    },
+    {
+      <span class="key">"id"</span>: <span class="str">"mistral:7b"</span>,
+      <span class="key">"object"</span>: <span class="str">"model"</span>,
+      <span class="key">"owned_by"</span>: <span class="str">"community"</span>,
+      <span class="key">"routecat_pricing"</span>: {
+        <span class="key">"input_per_1m_tokens_usd"</span>: <span class="num">0.04</span>,
+        <span class="key">"output_per_1m_tokens_usd"</span>: <span class="num">0.08</span>,
+        <span class="key">"input_per_1m_tokens_sats"</span>: <span class="num">40</span>,
+        <span class="key">"output_per_1m_tokens_sats"</span>: <span class="num">80</span>
+      }
+    }
+  ]
+}</code></pre>
+      </div>
+
+      <p data-i18n="docs.models.pricing_note">
+        The <code>routecat_pricing</code> object is a RouteCat extension not present in the standard OpenAI response. It shows the current per-token cost in both USD and satoshis.
+      </p>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- POST /v1/auth/register                      -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="register">
+      <div class="endpoint-header">
+        <span class="method method-post">POST</span>
+        <span class="endpoint-path">/v1/auth/register</span>
+      </div>
+
+      <p data-i18n="docs.register.desc">Create a new API key. No authentication required.</p>
+
+      <h3 data-i18n="docs.register.body_title">Request Body</h3>
+
+      <div class="param">
+        <span class="param-name">name</span>
+        <span class="param-type">string</span>
+        <span class="param-optional">optional</span>
+        <div class="param-desc" data-i18n="docs.register.param_name">A label for this key. Helps you identify it later.</div>
+      </div>
+
+      <h3 data-i18n="docs.register.example_title">Example</h3>
+
+      <div class="code-block">
+        <span class="code-label">Request</span>
+        <pre><code><span class="cmd">curl</span> <span class="str">-X POST</span> https://route.cat/v1/auth/register \
+  <span class="str">-H</span> <span class="str">"Content-Type: application/json"</span> \
+  <span class="str">-d</span> <span class="str">'{"name": "my app"}'</span></code></pre>
+      </div>
+
+      <div class="code-block">
+        <span class="code-label">Response</span>
+        <pre><code>{
+  <span class="key">"api_key"</span>: <span class="str">"rc_a1b2c3d4e5f6g7h8i9j0"</span>,
+  <span class="key">"quota_daily"</span>: <span class="num">10</span>
+}</code></pre>
+      </div>
+
+      <div class="callout callout-warn">
+        <div class="callout-title" data-i18n="docs.register.warn_title">Important</div>
+        <p data-i18n="docs.register.warn_body">Store your API key securely. It is only shown once at creation time and cannot be retrieved later.</p>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- POST /v1/auth/topup                         -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="topup">
+      <div class="endpoint-header">
+        <span class="method method-post">POST</span>
+        <span class="endpoint-path">/v1/auth/topup</span>
+      </div>
+
+      <p data-i18n="docs.topup.desc">Generate a Lightning Network invoice to add satoshis to your account balance. Requires authentication.</p>
+
+      <h3 data-i18n="docs.topup.body_title">Request Body</h3>
+
+      <div class="param">
+        <span class="param-name">amount_sats</span>
+        <span class="param-type">integer</span>
+        <span class="param-required">required</span>
+        <div class="param-desc" data-i18n="docs.topup.param_amount">Amount in satoshis to add to your balance. Minimum: 100 sats.</div>
+      </div>
+
+      <h3 data-i18n="docs.topup.example_title">Example</h3>
+
+      <div class="code-block">
+        <span class="code-label">Request</span>
+        <pre><code><span class="cmd">curl</span> <span class="str">-X POST</span> https://route.cat/v1/auth/topup \
+  <span class="str">-H</span> <span class="str">"Authorization: Bearer rc_your_key_here"</span> \
+  <span class="str">-H</span> <span class="str">"Content-Type: application/json"</span> \
+  <span class="str">-d</span> <span class="str">'{"amount_sats": 500}'</span></code></pre>
+      </div>
+
+      <div class="code-block">
+        <span class="code-label">Response</span>
+        <pre><code>{
+  <span class="key">"invoice"</span>: <span class="str">"lnbc5u1pjk..."</span>,
+  <span class="key">"amount_sats"</span>: <span class="num">500</span>,
+  <span class="key">"expires_at"</span>: <span class="str">"2026-04-13T12:30:00Z"</span>
+}</code></pre>
+      </div>
+
+      <p data-i18n="docs.topup.note">Pay the returned Lightning invoice with any compatible wallet. Your balance updates automatically once the payment confirms.</p>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- GET /v1/auth/balance                        -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="balance">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/v1/auth/balance</span>
+      </div>
+
+      <p data-i18n="docs.balance.desc">Check your current account balance and remaining free-tier requests. Requires authentication.</p>
+
+      <h3 data-i18n="docs.balance.example_title">Example Response</h3>
+
+      <div class="code-block">
+        <span class="code-label">JSON</span>
+        <pre><code>{
+  <span class="key">"balance_sats"</span>: <span class="num">4200</span>,
+  <span class="key">"free_remaining"</span>: <span class="num">7</span>
+}</code></pre>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th data-i18n="docs.balance.field">Field</th>
+            <th data-i18n="docs.balance.type">Type</th>
+            <th data-i18n="docs.balance.description">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>balance_sats</code></td>
+            <td>integer</td>
+            <td data-i18n="docs.balance.field_balance">Your paid balance in satoshis</td>
+          </tr>
+          <tr>
+            <td><code>free_remaining</code></td>
+            <td>integer</td>
+            <td data-i18n="docs.balance.field_free">Free-tier requests remaining today (resets at midnight UTC)</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- GET /v1/stats                               -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="stats">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/v1/stats</span>
+      </div>
+
+      <p data-i18n="docs.stats.desc">Public endpoint returning current gateway statistics. No authentication required.</p>
+
+      <h3 data-i18n="docs.stats.example_title">Example Response</h3>
+
+      <div class="code-block">
+        <span class="code-label">JSON</span>
+        <pre><code>{
+  <span class="key">"nodes_online"</span>: <span class="num">12</span>,
+  <span class="key">"jobs_24h"</span>: <span class="num">3847</span>,
+  <span class="key">"tokens_24h"</span>: <span class="num">2841500</span>,
+  <span class="key">"btc_usd"</span>: <span class="num">84250.00</span>,
+  <span class="key">"version"</span>: <span class="str">"0.5.2"</span>,
+  <span class="key">"commit"</span>: <span class="str">"816ea5c"</span>
+}</code></pre>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th data-i18n="docs.stats.field">Field</th>
+            <th data-i18n="docs.stats.description">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>nodes_online</code></td>
+            <td data-i18n="docs.stats.field_nodes">Number of GPU provider nodes currently connected</td>
+          </tr>
+          <tr>
+            <td><code>jobs_24h</code></td>
+            <td data-i18n="docs.stats.field_jobs">Inference jobs completed in the last 24 hours</td>
+          </tr>
+          <tr>
+            <td><code>tokens_24h</code></td>
+            <td data-i18n="docs.stats.field_tokens">Total tokens generated in the last 24 hours</td>
+          </tr>
+          <tr>
+            <td><code>btc_usd</code></td>
+            <td data-i18n="docs.stats.field_btc">Current BTC/USD exchange rate used for pricing</td>
+          </tr>
+          <tr>
+            <td><code>version</code></td>
+            <td data-i18n="docs.stats.field_version">Gateway software version</td>
+          </tr>
+          <tr>
+            <td><code>commit</code></td>
+            <td data-i18n="docs.stats.field_commit">Git commit hash of the running build</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- GET /v1/audit                               -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="audit">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/v1/audit</span>
+      </div>
+
+      <p data-i18n="docs.audit.desc">Public audit log of recent inference jobs. Data is anonymized &mdash; no user-identifiable information is included. No authentication required.</p>
+
+      <h3 data-i18n="docs.audit.example_title">Example Response</h3>
+
+      <div class="code-block">
+        <span class="code-label">JSON</span>
+        <pre><code>{
+  <span class="key">"jobs"</span>: [
+    {
+      <span class="key">"id"</span>: <span class="str">"job_x7k9m2"</span>,
+      <span class="key">"model"</span>: <span class="str">"llama3.1:8b"</span>,
+      <span class="key">"tokens_in"</span>: <span class="num">45</span>,
+      <span class="key">"tokens_out"</span>: <span class="num">128</span>,
+      <span class="key">"duration_ms"</span>: <span class="num">1850</span>,
+      <span class="key">"cost_sats"</span>: <span class="num">2</span>,
+      <span class="key">"timestamp"</span>: <span class="str">"2026-04-13T10:05:32Z"</span>
+    }
+  ],
+  <span class="key">"total"</span>: <span class="num">3847</span>,
+  <span class="key">"page"</span>: <span class="num">1</span>
+}</code></pre>
+      </div>
+
+      <p data-i18n="docs.audit.note">The audit log provides transparency into how the network is being used. It is useful for providers monitoring demand and for anyone verifying the gateway's operation.</p>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- Streaming                                   -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="streaming">
+      <h2 data-i18n="docs.streaming.title">Streaming</h2>
+
+      <p data-i18n="docs.streaming.desc">
+        When <code>stream: true</code> is set in a chat completion request, the response is delivered as <strong>Server-Sent Events (SSE)</strong>. Each event contains a chunk of the response, allowing you to display tokens as they are generated.
+      </p>
+
+      <h3 data-i18n="docs.streaming.format_title">SSE Format</h3>
+      <p data-i18n="docs.streaming.format_desc">Each line is prefixed with <code>data: </code> followed by a JSON object. The stream ends with a <code>data: [DONE]</code> sentinel.</p>
+
+      <div class="code-block">
+        <span class="code-label">SSE Stream</span>
+        <pre><code><span class="key">data:</span> {<span class="str">"id"</span>:<span class="str">"chatcmpl-abc123"</span>,<span class="str">"choices"</span>:[{<span class="str">"delta"</span>:{<span class="str">"content"</span>:<span class="str">"Hello"</span>}}]}
+
+<span class="key">data:</span> {<span class="str">"id"</span>:<span class="str">"chatcmpl-abc123"</span>,<span class="str">"choices"</span>:[{<span class="str">"delta"</span>:{<span class="str">"content"</span>:<span class="str">" there"</span>}}]}
+
+<span class="key">data:</span> {<span class="str">"id"</span>:<span class="str">"chatcmpl-abc123"</span>,<span class="str">"choices"</span>:[{<span class="str">"delta"</span>:{},<span class="str">"finish_reason"</span>:<span class="str">"stop"</span>}]}
+
+<span class="key">data:</span> <span class="comment">[DONE]</span></code></pre>
+      </div>
+
+      <h3 data-i18n="docs.streaming.python_title">Parsing in Python</h3>
+
+      <div class="code-block">
+        <span class="code-label">Python</span>
+        <pre><code><span class="kw">from</span> openai <span class="kw">import</span> OpenAI
+
+client = OpenAI(
+    <span class="param-name">base_url</span>=<span class="str">"https://route.cat/v1"</span>,
+    <span class="param-name">api_key</span>=<span class="str">"rc_your_key_here"</span>,
+)
+
+stream = client.chat.completions.<span class="fn">create</span>(
+    <span class="param-name">model</span>=<span class="str">"llama3.1:8b"</span>,
+    <span class="param-name">messages</span>=[{<span class="str">"role"</span>: <span class="str">"user"</span>, <span class="str">"content"</span>: <span class="str">"Tell me a joke"</span>}],
+    <span class="param-name">stream</span>=<span class="num">True</span>,
+)
+
+<span class="kw">for</span> chunk <span class="kw">in</span> stream:
+    <span class="kw">if</span> chunk.choices[<span class="num">0</span>].delta.content:
+        <span class="fn">print</span>(chunk.choices[<span class="num">0</span>].delta.content, end=<span class="str">""</span>, flush=<span class="num">True</span>)</code></pre>
+      </div>
+
+      <h3 data-i18n="docs.streaming.js_title">Parsing in JavaScript</h3>
+
+      <div class="code-block">
+        <span class="code-label">JavaScript</span>
+        <pre><code><span class="kw">const</span> response = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">"https://route.cat/v1/chat/completions"</span>, {
+  <span class="key">method</span>: <span class="str">"POST"</span>,
+  <span class="key">headers</span>: {
+    <span class="str">"Authorization"</span>: <span class="str">"Bearer rc_your_key_here"</span>,
+    <span class="str">"Content-Type"</span>: <span class="str">"application/json"</span>,
+  },
+  <span class="key">body</span>: JSON.<span class="fn">stringify</span>({
+    <span class="key">model</span>: <span class="str">"llama3.1:8b"</span>,
+    <span class="key">messages</span>: [{ <span class="key">role</span>: <span class="str">"user"</span>, <span class="key">content</span>: <span class="str">"Tell me a joke"</span> }],
+    <span class="key">stream</span>: <span class="num">true</span>,
+  }),
+});
+
+<span class="kw">const</span> reader = response.body.<span class="fn">getReader</span>();
+<span class="kw">const</span> decoder = <span class="kw">new</span> <span class="fn">TextDecoder</span>();
+
+<span class="kw">while</span> (<span class="num">true</span>) {
+  <span class="kw">const</span> { done, value } = <span class="kw">await</span> reader.<span class="fn">read</span>();
+  <span class="kw">if</span> (done) <span class="kw">break</span>;
+
+  <span class="kw">const</span> lines = decoder.<span class="fn">decode</span>(value).<span class="fn">split</span>(<span class="str">"\n"</span>);
+  <span class="kw">for</span> (<span class="kw">const</span> line <span class="kw">of</span> lines) {
+    <span class="kw">if</span> (line.<span class="fn">startsWith</span>(<span class="str">"data: "</span>) && line !== <span class="str">"data: [DONE]"</span>) {
+      <span class="kw">const</span> data = JSON.<span class="fn">parse</span>(line.<span class="fn">slice</span>(<span class="num">6</span>));
+      <span class="kw">const</span> content = data.choices[<span class="num">0</span>]?.delta?.content;
+      <span class="kw">if</span> (content) process.stdout.<span class="fn">write</span>(content);
+    }
+  }
+}</code></pre>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- Billing                                     -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="billing">
+      <h2 data-i18n="docs.billing.title">Billing</h2>
+
+      <p data-i18n="docs.billing.desc">
+        RouteCat uses a simple per-token billing model. You pay only for what you use, with no monthly subscriptions or minimums.
+      </p>
+
+      <h3 data-i18n="docs.billing.how_title">How It Works</h3>
+      <ol>
+        <li data-i18n="docs.billing.step1"><strong>Top up</strong> your balance by paying a Lightning invoice (see <a href="#topup">/v1/auth/topup</a>).</li>
+        <li data-i18n="docs.billing.step2"><strong>Use tokens</strong> &mdash; each request deducts from your balance based on the model's per-token rate.</li>
+        <li data-i18n="docs.billing.step3"><strong>Providers earn</strong> &mdash; 95% of the token cost goes to the GPU provider who served the request.</li>
+        <li data-i18n="docs.billing.step4"><strong>Gateway fee</strong> &mdash; RouteCat takes a 5% fee to cover infrastructure and development.</li>
+      </ol>
+
+      <h3 data-i18n="docs.billing.pricing_title">Pricing</h3>
+      <p data-i18n="docs.billing.pricing_desc">
+        Each model has its own per-token rate, visible via the <a href="#models">/v1/models</a> endpoint. Prices are set in USD and converted to satoshis using the current BTC/USD exchange rate (updated every 5 minutes).
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th data-i18n="docs.billing.model">Model</th>
+            <th data-i18n="docs.billing.input_price">Input (per 1M tokens)</th>
+            <th data-i18n="docs.billing.output_price">Output (per 1M tokens)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>llama3.1:8b</code></td>
+            <td>$0.05 / ~50 sats</td>
+            <td>$0.10 / ~100 sats</td>
+          </tr>
+          <tr>
+            <td><code>mistral:7b</code></td>
+            <td>$0.04 / ~40 sats</td>
+            <td>$0.08 / ~80 sats</td>
+          </tr>
+          <tr>
+            <td><code>gemma2:9b</code></td>
+            <td>$0.06 / ~60 sats</td>
+            <td>$0.12 / ~120 sats</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p class="dim" data-i18n="docs.billing.pricing_note">Prices shown in sats are approximate and depend on the current BTC/USD rate.</p>
+
+      <h3 data-i18n="docs.billing.caps_title">Spending Caps</h3>
+      <p data-i18n="docs.billing.caps_desc">
+        If your balance reaches zero during a request, the response will still complete &mdash; you are not cut off mid-generation. However, subsequent requests will return a <code>402</code> error until you top up. Free-tier users receive 10 requests per day regardless of balance.
+      </p>
+
+      <div class="callout callout-info">
+        <div class="callout-title" data-i18n="docs.billing.conversion_title">BTC/USD Conversion</div>
+        <p data-i18n="docs.billing.conversion_body">The gateway fetches the BTC/USD rate every 5 minutes. The rate used for a given request is the rate in effect at the time the request is processed. You can check the current rate via <a href="#stats">/v1/stats</a>.</p>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- Provider Guide                              -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="provider-guide">
+      <h2 data-i18n="docs.provider.title">Provider Guide</h2>
+
+      <p data-i18n="docs.provider.desc">
+        Anyone with a GPU can earn Bitcoin by serving inference requests on the RouteCat network. Providers run <strong>Owlrun</strong>, a lightweight agent that connects to the gateway and processes jobs using locally-installed models via <a href="https://ollama.com" target="_blank" rel="noopener">Ollama</a>.
+      </p>
+
+      <h3 data-i18n="docs.provider.prereqs_title">Prerequisites</h3>
+      <ul>
+        <li data-i18n="docs.provider.prereq1">A machine with a GPU (NVIDIA recommended, 8GB+ VRAM)</li>
+        <li data-i18n="docs.provider.prereq2">A Lightning Network address for receiving payouts</li>
+      </ul>
+
+      <h3 data-i18n="docs.provider.setup_title">Setup</h3>
+
+      <div class="steps">
+        <div class="step">
+          <h4 data-i18n="docs.provider.step1_title">Install Ollama</h4>
+          <p data-i18n="docs.provider.step1_desc">Ollama provides the local model runtime. Install it and pull the models you want to serve.</p>
+          <div class="code-block">
+            <span class="code-label">Shell</span>
+            <pre><code><span class="cmd">curl</span> -fsSL https://ollama.com/install.sh | sh
+<span class="cmd">ollama</span> pull llama3.1:8b
+<span class="cmd">ollama</span> pull mistral:7b</code></pre>
+          </div>
+        </div>
+
+        <div class="step">
+          <h4 data-i18n="docs.provider.step2_title">Install Owlrun</h4>
+          <p data-i18n="docs.provider.step2_desc">Download the Owlrun binary for your platform from the <a href="https://github.com/aaronFortuno/owlrun/releases" target="_blank" rel="noopener">releases page</a>, or build from source.</p>
+          <div class="code-block">
+            <span class="code-label">Shell</span>
+            <pre><code><span class="comment"># Download latest release (Linux amd64)</span>
+<span class="cmd">wget</span> https://github.com/aaronFortuno/owlrun/releases/latest/download/owlrun-linux-amd64
+<span class="cmd">chmod</span> +x owlrun-linux-amd64
+<span class="cmd">sudo</span> mv owlrun-linux-amd64 /usr/local/bin/owlrun</code></pre>
+          </div>
+        </div>
+
+        <div class="step">
+          <h4 data-i18n="docs.provider.step3_title">Configure &amp; Run</h4>
+          <p data-i18n="docs.provider.step3_desc">Point Owlrun at the RouteCat gateway and provide your Lightning address for payouts.</p>
+          <div class="code-block">
+            <span class="code-label">Shell</span>
+            <pre><code><span class="cmd">owlrun</span> \
+  <span class="str">--gateway</span> https://route.cat \
+  <span class="str">--lightning-address</span> you@walletofsatoshi.com \
+  <span class="str">--ollama-url</span> http://localhost:11434</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <h3 data-i18n="docs.provider.earnings_title">Earnings &amp; Payouts</h3>
+      <p data-i18n="docs.provider.earnings_desc">
+        Providers earn <strong>95%</strong> of the per-token cost for every request they serve. Earnings accumulate until they reach the payout threshold (<strong>1,000 sats</strong> by default), at which point the gateway automatically sends a Lightning payment to your configured address.
+      </p>
+
+      <div class="callout callout-tip">
+        <div class="callout-title" data-i18n="docs.provider.tip_title">Tip</div>
+        <p data-i18n="docs.provider.tip_body">Pull popular models to maximize your chances of being selected for jobs. Check <a href="#stats">/v1/stats</a> to see current network demand.</p>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- Errors                                      -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="errors">
+      <h2 data-i18n="docs.errors.title">Errors</h2>
+
+      <p data-i18n="docs.errors.desc">
+        The API uses standard HTTP status codes. All error responses include a JSON body with an <code>error</code> field describing the issue.
+      </p>
+
+      <h3 data-i18n="docs.errors.format_title">Error Response Format</h3>
+
+      <div class="code-block">
+        <span class="code-label">JSON</span>
+        <pre><code>{
+  <span class="key">"error"</span>: <span class="str">"Insufficient balance. Please top up your account."</span>
+}</code></pre>
+      </div>
+
+      <h3 data-i18n="docs.errors.codes_title">Status Codes</h3>
+
+      <div class="status-row">
+        <span class="status-code status-2xx">200</span>
+        <span class="status-desc" data-i18n="docs.errors.200">Request succeeded.</span>
+      </div>
+
+      <div class="status-row">
+        <span class="status-code status-4xx">400</span>
+        <span class="status-desc" data-i18n="docs.errors.400">Bad request. The request body is malformed or missing required fields.</span>
+      </div>
+
+      <div class="status-row">
+        <span class="status-code status-4xx">401</span>
+        <span class="status-desc" data-i18n="docs.errors.401">Unauthorized. API key is missing, invalid, or revoked.</span>
+      </div>
+
+      <div class="status-row">
+        <span class="status-code status-4xx">402</span>
+        <span class="status-desc" data-i18n="docs.errors.402">Payment required. Your balance is zero and free-tier quota is exhausted. Top up via <a href="#topup">/v1/auth/topup</a>.</span>
+      </div>
+
+      <div class="status-row">
+        <span class="status-code status-4xx">404</span>
+        <span class="status-desc" data-i18n="docs.errors.404">Not found. The requested model or endpoint does not exist.</span>
+      </div>
+
+      <div class="status-row">
+        <span class="status-code status-4xx">429</span>
+        <span class="status-desc" data-i18n="docs.errors.429">Rate limited. You have exceeded 60 requests per minute. Retry after the <code>Retry-After</code> header interval.</span>
+      </div>
+
+      <div class="status-row">
+        <span class="status-code status-5xx">500</span>
+        <span class="status-desc" data-i18n="docs.errors.500">Internal server error. Something went wrong on the gateway. Please try again or report the issue.</span>
+      </div>
+
+      <div class="status-row">
+        <span class="status-code status-5xx">503</span>
+        <span class="status-desc" data-i18n="docs.errors.503">Service unavailable. No provider nodes are currently online for the requested model. Try again shortly or choose a different model.</span>
+      </div>
+
+      <div class="callout callout-info">
+        <div class="callout-title" data-i18n="docs.errors.retry_title">Retry Strategy</div>
+        <p data-i18n="docs.errors.retry_body">For <code>429</code> and <code>503</code> errors, implement exponential backoff with a maximum of 3 retries. For <code>500</code> errors, a single retry is usually sufficient.</p>
+      </div>
+    </section>
+
+    <hr>
+
+    <p class="dim" style="text-align: center; font-size: 0.85rem;" data-i18n="docs.footer">
+      RouteCat is open source. Contribute on <a href="https://github.com/aaronFortuno/routecat">GitHub</a>.
+    </p>
+
+  </div>
+</main>
+
+<script>
+  // ── Mobile sidebar toggle ──
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebarBackdrop').classList.toggle('open');
+  }
+
+  // Close sidebar on nav link click (mobile)
+  document.querySelectorAll('.sidebar-nav a').forEach(link => {
+    link.addEventListener('click', () => {
+      if (window.innerWidth <= 860) {
+        toggleSidebar();
+      }
+    });
+  });
+
+  // ── Active link tracking ──
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('.sidebar-nav a');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(link => link.classList.remove('active'));
+        const activeLink = document.querySelector(`.sidebar-nav a[href="#${entry.target.id}"]`);
+        if (activeLink) activeLink.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+
+  sections.forEach(section => observer.observe(section));
+</script>
+
+</body>
+</html>
