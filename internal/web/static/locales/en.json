@@ -93,7 +93,7 @@
   "pg.sub": "Try it live. No sign-up needed for a quick test.",
   "pg.loading": "Loading models...",
   "pg.placeholder": "Type your message...",
-  "pg.default": "Explain what RouteCat is in one paragraph.",
+  "pg.default": "Tell me a short story about an extremely lazy cat who accidentally becomes the world's best message router.",
   "pg.send": "Send",
   "pg.sending": "Generating...",
   "pg.nokey": "Create an API key in the Account section above first.",

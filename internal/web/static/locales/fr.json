@@ -93,7 +93,7 @@
   "pg.sub": "Essaie en direct. Pas besoin de s'inscrire pour un test rapide.",
   "pg.loading": "Chargement des modèles...",
   "pg.placeholder": "Écris ton message...",
-  "pg.default": "Explique ce qu'est RouteCat en un paragraphe.",
+  "pg.default": "Raconte-moi une courte histoire sur un chat extrêmement paresseux qui devient par accident le meilleur routeur de messages au monde.",
   "pg.send": "Envoyer",
   "pg.sending": "Génération en cours...",
   "pg.nokey": "Crée d'abord une clé API dans la section Compte ci-dessus.",

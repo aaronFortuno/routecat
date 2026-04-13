@@ -93,7 +93,7 @@
   "pg.sub": "Prova-ho en directe. Sense registre per a una prova ràpida.",
   "pg.loading": "Carregant models...",
   "pg.placeholder": "Escriu el teu missatge...",
-  "pg.default": "Explica què és RouteCat en un paràgraf.",
+  "pg.default": "Explica'm un conte curt sobre un gat extremadament mandrós que per accident es converteix en el millor encaminador de missatges del món.",
   "pg.send": "Enviar",
   "pg.sending": "Generant...",
   "pg.nokey": "Crea una clau API a la secció Compte primer.",

@@ -266,8 +266,9 @@ func (a *API) HandleChatCompletions(w http.ResponseWriter, r *http.Request) {
 	// Free tier only from playground (X-Playground header). API requires balance.
 	balance, _ := a.db.UserBalance(userKey)
 	isPlayground := r.Header.Get("X-Playground") == "true"
-	if isPlayground && remaining > 0 {
-		// Free playground request — allowed (capped at 10/day per key)
+	isFreeTier := isPlayground && remaining > 0
+	if isFreeTier {
+		// Free playground request — use free quota, don't deduct balance
 	} else if balance > 0 {
 		// Paid request — allowed
 	} else if remaining > 0 && !isPlayground {
@@ -313,7 +314,7 @@ func (a *API) HandleChatCompletions(w http.ResponseWriter, r *http.Request) {
 
 	// Assign job to node
 	jobID := uuid.New().String()
-	responseCh, doneCh, err := a.assign.AssignJob(nodeID, jobID, req.Model, userKey, body, false)
+	responseCh, doneCh, err := a.assign.AssignJob(nodeID, jobID, req.Model, userKey, body, isFreeTier)
 	if err != nil {
 		if strings.Contains(err.Error(), "concurrent") {
 			http.Error(w, `{"error":{"message":"too many concurrent requests — wait for current requests to finish","type":"rate_limit_error"}}`, http.StatusTooManyRequests)
