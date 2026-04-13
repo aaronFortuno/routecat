@@ -25,8 +25,8 @@
 <nav class="sidebar" id="sidebar">
   <div class="sidebar-header">
     <a href="/">
-      <span class="logo-icon">&#128049;</span>
-      <span>RouteCat</span>
+      <img src="/logo.svg" alt="RouteCat" class="sidebar-logo">
+      <span>route<span class="cat">cat</span></span>
       <span class="badge" data-i18n="docs.badge">Docs</span>
     </a>
   </div>
@@ -51,6 +51,16 @@
     </div>
 
     <div class="nav-group">
+      <div class="nav-group-title" data-i18n="docs.nav.integrations">Integrations</div>
+      <a href="#int-vscode" data-i18n="docs.nav.int_vscode">VS Code (Continue)</a>
+      <a href="#int-cursor" data-i18n="docs.nav.int_cursor">Cursor</a>
+      <a href="#int-openwebui" data-i18n="docs.nav.int_openwebui">Open WebUI</a>
+      <a href="#int-chatbox" data-i18n="docs.nav.int_chatbox">ChatBox</a>
+      <a href="#int-opencode" data-i18n="docs.nav.int_opencode">OpenCode (CLI)</a>
+      <a href="#int-generic" data-i18n="docs.nav.int_generic">Any OpenAI app</a>
+    </div>
+
+    <div class="nav-group">
       <div class="nav-group-title" data-i18n="docs.nav.guides">Guides</div>
       <a href="#streaming" data-i18n="docs.nav.streaming">Streaming</a>
       <a href="#billing" data-i18n="docs.nav.billing">Billing</a>
@@ -60,7 +70,23 @@
   </div>
 
   <div class="sidebar-footer">
-    <a href="https://github.com/aaronFortuno/routecat" target="_blank" rel="noopener">
+    <div class="lang-switcher">
+      <button class="lang-globe" onclick="toggleLangDropdown()" aria-label="Language">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        <span id="lang-current">EN</span>
+      </button>
+      <div class="lang-dropdown" id="lang-dropdown">
+        <button onclick="switchLang('en')" data-lang="en">English</button>
+        <button onclick="switchLang('ca')" data-lang="ca">Catal&agrave;</button>
+        <button onclick="switchLang('es')" data-lang="es">Espa&ntilde;ol</button>
+        <button onclick="switchLang('gl')" data-lang="gl">Galego</button>
+        <button onclick="switchLang('eu')" data-lang="eu">Euskara</button>
+        <button onclick="switchLang('fr')" data-lang="fr">Fran&ccedil;ais</button>
+        <button onclick="switchLang('de')" data-lang="de">Deutsch</button>
+        <button onclick="switchLang('it')" data-lang="it">Italiano</button>
+      </div>
+    </div>
+    <a href="https://github.com/routecat/routecat" target="_blank" rel="noopener">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
       <span data-i18n="docs.nav.github">GitHub</span>
     </a>
@@ -81,7 +107,7 @@
       </p>
 
       <p data-i18n="docs.intro.p1">
-        <strong>RouteCat</strong> is an open-source gateway that routes AI inference requests to a decentralized network of GPU providers running <a href="https://github.com/aaronFortuno/owlrun">Owlrun</a> nodes. It exposes an <strong>OpenAI-compatible API</strong>, so any existing client or library works out of the box.
+        <strong>RouteCat</strong> is an open-source gateway that routes AI inference requests to a decentralized network of GPU providers running <a href="https://github.com/routecat/owlrun">Owlrun</a> nodes. It exposes an <strong>OpenAI-compatible API</strong>, so any existing client or library works out of the box.
       </p>
 
       <p data-i18n="docs.intro.p2">
@@ -623,6 +649,294 @@ response = client.chat.completions.<span class="fn">create</span>(
     </section>
 
     <!-- ═══════════════════════════════════════════ -->
+    <!-- Integrations                                -->
+    <!-- ═══════════════════════════════════════════ -->
+
+    <section id="integrations">
+      <h2 data-i18n="docs.int.title">Integrations</h2>
+      <p data-i18n="docs.int.desc">RouteCat works with any tool that supports the OpenAI API. Below you'll find step-by-step guides for the most popular ones. In every case, you only need two things:</p>
+
+      <div class="callout callout-info">
+        <div class="callout-title" data-i18n="docs.int.need_title">What you need</div>
+        <p data-i18n="docs.int.need_body"><strong>API Key</strong> &mdash; get one for free at <a href="https://route.cat/#account">route.cat</a> (Account section, "Create API Key")<br><strong>Base URL</strong> &mdash; <code>https://route.cat/v1</code></p>
+      </div>
+
+      <p data-i18n="docs.int.models_note">To see which models are available right now, visit <a href="https://route.cat/#pricing">route.cat &rarr; Pricing</a> or call <a href="#models"><code>GET /v1/models</code></a>. Use the exact model name shown there (e.g. <code>qwen2.5:7b</code>, <code>llama3.1:8b</code>).</p>
+    </section>
+
+    <!-- ── VS Code + Continue ── -->
+    <section id="int-vscode">
+      <h2 data-i18n="docs.int.vscode.title">VS Code &mdash; Continue</h2>
+      <p data-i18n="docs.int.vscode.desc"><a href="https://www.continue.dev/">Continue</a> is a free, open-source AI coding assistant for VS Code and JetBrains. It gives you autocomplete, chat, and inline editing &mdash; all powered by the model of your choice.</p>
+
+      <div class="steps">
+        <div class="step">
+          <h4 data-i18n="docs.int.vscode.s1">1. Install Continue</h4>
+          <p data-i18n="docs.int.vscode.s1d">Open VS Code, go to the Extensions panel (<kbd>Ctrl+Shift+X</kbd>), search <strong>Continue</strong>, and click <strong>Install</strong>.</p>
+        </div>
+        <div class="step">
+          <h4 data-i18n="docs.int.vscode.s2">2. Open Continue settings</h4>
+          <p data-i18n="docs.int.vscode.s2d">Click the Continue icon in the sidebar (the wand icon), then click the <strong>gear icon</strong> at the bottom of the Continue panel. This opens <code>~/.continue/config.yaml</code>.</p>
+        </div>
+        <div class="step">
+          <h4 data-i18n="docs.int.vscode.s3">3. Add RouteCat as a provider</h4>
+          <p data-i18n="docs.int.vscode.s3d">Replace or add the following in your <code>config.yaml</code>:</p>
+          <div class="code-block">
+            <span class="code-label">~/.continue/config.yaml</span>
+            <pre><code><span class="key">models</span>:
+  - <span class="key">name</span>: <span class="str">RouteCat</span>
+    <span class="key">provider</span>: <span class="str">openai</span>
+    <span class="key">model</span>: <span class="str">qwen2.5:7b</span>
+    <span class="key">apiBase</span>: <span class="str">https://route.cat/v1</span>
+    <span class="key">apiKey</span>: <span class="str">rc_YOUR_KEY</span></code></pre>
+          </div>
+        </div>
+        <div class="step">
+          <h4 data-i18n="docs.int.vscode.s4">4. Start chatting</h4>
+          <p data-i18n="docs.int.vscode.s4d">Open the Continue panel, select <strong>RouteCat</strong> from the model dropdown, and ask a question. That's it!</p>
+        </div>
+      </div>
+
+      <div class="callout callout-tip">
+        <div class="callout-title" data-i18n="docs.int.vscode.tip_title">Tip</div>
+        <p data-i18n="docs.int.vscode.tip_body">You can add multiple models &mdash; just repeat the block with a different <code>model</code> value. Check the available models at <a href="https://route.cat/#pricing">route.cat/pricing</a>.</p>
+      </div>
+    </section>
+
+    <!-- ── Cursor ── -->
+    <section id="int-cursor">
+      <h2 data-i18n="docs.int.cursor.title">Cursor</h2>
+      <p data-i18n="docs.int.cursor.desc"><a href="https://cursor.com">Cursor</a> is an AI-first code editor built on VS Code. You can point it to RouteCat instead of the built-in models.</p>
+
+      <div class="steps">
+        <div class="step">
+          <h4 data-i18n="docs.int.cursor.s1">1. Open model settings</h4>
+          <p data-i18n="docs.int.cursor.s1d">Go to <strong>Cursor Settings</strong> (<kbd>Ctrl+Shift+J</kbd> or click the gear icon) &rarr; <strong>Models</strong>.</p>
+        </div>
+        <div class="step">
+          <h4 data-i18n="docs.int.cursor.s2">2. Add an OpenAI-compatible model</h4>
+          <p data-i18n="docs.int.cursor.s2d">Click <strong>+ Add model</strong>, then choose <strong>OpenAI-compatible</strong>. Fill in:</p>
+          <div class="code-block">
+            <span class="code-label">Cursor Settings</span>
+            <pre><code><span class="key">Model name</span>:    <span class="str">qwen2.5:7b</span>
+<span class="key">API Base URL</span>:  <span class="str">https://route.cat/v1</span>
+<span class="key">API Key</span>:       <span class="str">rc_YOUR_KEY</span></code></pre>
+          </div>
+        </div>
+        <div class="step">
+          <h4 data-i18n="docs.int.cursor.s3">3. Select and use</h4>
+          <p data-i18n="docs.int.cursor.s3d">Select the new model from the model selector in the chat panel or inline edit. Start coding.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Open WebUI ── -->
+    <section id="int-openwebui">
+      <h2 data-i18n="docs.int.openwebui.title">Open WebUI</h2>
+      <p data-i18n="docs.int.openwebui.desc"><a href="https://openwebui.com">Open WebUI</a> is a self-hosted web interface that looks and works like ChatGPT. You can connect it to RouteCat to chat with any available model through a familiar interface.</p>
+
+      <div class="steps">
+        <div class="step">
+          <h4 data-i18n="docs.int.openwebui.s1">1. Open connections</h4>
+          <p data-i18n="docs.int.openwebui.s1d">In Open WebUI, click your profile icon (bottom-left) &rarr; <strong>Settings</strong> &rarr; <strong>Connections</strong>.</p>
+        </div>
+        <div class="step">
+          <h4 data-i18n="docs.int.openwebui.s2">2. Add an OpenAI connection</h4>
+          <p data-i18n="docs.int.openwebui.s2d">Under <strong>OpenAI API</strong>, click <strong>+</strong> and fill in:</p>
+          <div class="code-block">
+            <span class="code-label">Open WebUI &rarr; Connections</span>
+            <pre><code><span class="key">URL</span>:      <span class="str">https://route.cat/v1</span>
+<span class="key">API Key</span>:  <span class="str">rc_YOUR_KEY</span></code></pre>
+          </div>
+        </div>
+        <div class="step">
+          <h4 data-i18n="docs.int.openwebui.s3">3. Save and chat</h4>
+          <p data-i18n="docs.int.openwebui.s3d">Click <strong>Save</strong>. The available models will appear in the model selector. Start a new chat, pick a model, and go.</p>
+        </div>
+      </div>
+
+      <div class="callout callout-tip">
+        <div class="callout-title" data-i18n="docs.int.openwebui.tip_title">Don't have Open WebUI?</div>
+        <p data-i18n="docs.int.openwebui.tip_body">Install it with one command: <code>docker run -d -p 3000:8080 ghcr.io/open-webui/open-webui:main</code>. Then open <a href="http://localhost:3000">localhost:3000</a>.</p>
+      </div>
+    </section>
+
+    <!-- ── ChatBox ── -->
+    <section id="int-chatbox">
+      <h2 data-i18n="docs.int.chatbox.title">ChatBox</h2>
+      <p data-i18n="docs.int.chatbox.desc"><a href="https://chatboxai.app">ChatBox</a> is a free desktop app for Windows, Mac, and Linux. It's the easiest way to use RouteCat if you just want to chat &mdash; no terminal, no code.</p>
+
+      <div class="steps">
+        <div class="step">
+          <h4 data-i18n="docs.int.chatbox.s1">1. Download and install</h4>
+          <p data-i18n="docs.int.chatbox.s1d">Download from <a href="https://chatboxai.app">chatboxai.app</a> and install it.</p>
+        </div>
+        <div class="step">
+          <h4 data-i18n="docs.int.chatbox.s2">2. Configure the AI provider</h4>
+          <p data-i18n="docs.int.chatbox.s2d">Open <strong>Settings</strong> (gear icon) &rarr; <strong>AI Model Provider</strong>. Select <strong>OpenAI API Compatible</strong> and fill in:</p>
+          <div class="code-block">
+            <span class="code-label">ChatBox Settings</span>
+            <pre><code><span class="key">API Domain</span>:  <span class="str">https://route.cat</span>
+<span class="key">API Path</span>:    <span class="str">/v1/chat/completions</span>
+<span class="key">API Key</span>:     <span class="str">rc_YOUR_KEY</span>
+<span class="key">Model</span>:       <span class="str">qwen2.5:7b</span></code></pre>
+          </div>
+        </div>
+        <div class="step">
+          <h4 data-i18n="docs.int.chatbox.s3">3. Chat away</h4>
+          <p data-i18n="docs.int.chatbox.s3d">Click <strong>Save</strong> and start a new conversation. Works exactly like ChatGPT.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── OpenCode CLI ── -->
+    <section id="int-opencode">
+      <h2 data-i18n="docs.int.opencode.title">OpenCode (CLI)</h2>
+      <p data-i18n="docs.int.opencode.desc"><a href="https://github.com/anomalyco/opencode">OpenCode</a> is a terminal-based AI coding assistant with a TUI interface. It supports custom providers, making it easy to use RouteCat for AI-assisted coding directly in your terminal.</p>
+
+      <div class="steps">
+        <div class="step">
+          <h4 data-i18n="docs.int.opencode.s1">1. Install OpenCode</h4>
+          <div class="code-block">
+            <span class="code-label">Terminal</span>
+            <pre><code><span class="comment"># Quick install (Linux/macOS)</span>
+<span class="cmd">curl</span> -fsSL https://opencode.ai/install | bash
+
+<span class="comment"># macOS (Homebrew)</span>
+<span class="cmd">brew install</span> anomalyco/tap/opencode
+
+<span class="comment"># npm</span>
+<span class="cmd">npm i -g</span> opencode-ai@latest
+
+<span class="comment"># Windows (Scoop)</span>
+<span class="cmd">scoop install</span> opencode</code></pre>
+          </div>
+        </div>
+        <div class="step">
+          <h4 data-i18n="docs.int.opencode.s2">2. Set your API key</h4>
+          <p data-i18n="docs.int.opencode.s2d">Store your RouteCat API key as an environment variable. Add this to your <code>~/.bashrc</code>, <code>~/.zshrc</code>, or equivalent:</p>
+          <div class="code-block">
+            <span class="code-label">Shell</span>
+            <pre><code><span class="cmd">export</span> ROUTECAT_API_KEY=<span class="str">"rc_YOUR_KEY"</span></code></pre>
+          </div>
+        </div>
+        <div class="step">
+          <h4 data-i18n="docs.int.opencode.s3">3. Configure</h4>
+          <p data-i18n="docs.int.opencode.s3d">Create an <code>opencode.json</code> at your project root (or globally at <code>~/.config/opencode/opencode.json</code>):</p>
+          <div class="code-block">
+            <span class="code-label">opencode.json</span>
+            <pre><code>{
+  <span class="key">"provider"</span>: {
+    <span class="key">"routecat"</span>: {
+      <span class="key">"npm"</span>: <span class="str">"@ai-sdk/openai-compatible"</span>,
+      <span class="key">"name"</span>: <span class="str">"RouteCat"</span>,
+      <span class="key">"options"</span>: {
+        <span class="key">"baseURL"</span>: <span class="str">"https://route.cat/v1"</span>,
+        <span class="key">"apiKey"</span>: <span class="str">"{env:ROUTECAT_API_KEY}"</span>
+      },
+      <span class="key">"models"</span>: {
+        <span class="key">"qwen2.5:7b"</span>: { <span class="key">"name"</span>: <span class="str">"Qwen 2.5 7B"</span> },
+        <span class="key">"llama3.1:8b"</span>: { <span class="key">"name"</span>: <span class="str">"Llama 3.1 8B"</span> }
+      }
+    }
+  },
+  <span class="key">"model"</span>: <span class="str">"routecat/qwen2.5:7b"</span>
+}</code></pre>
+          </div>
+        </div>
+        <div class="step">
+          <h4 data-i18n="docs.int.opencode.s4">4. Run</h4>
+          <div class="code-block">
+            <span class="code-label">Terminal</span>
+            <pre><code><span class="cmd">opencode</span></code></pre>
+          </div>
+          <p data-i18n="docs.int.opencode.s4d">OpenCode will start in interactive mode. Ask it to edit files, explain code, or write tests &mdash; all powered by RouteCat.</p>
+        </div>
+      </div>
+
+      <div class="callout callout-tip">
+        <div class="callout-title" data-i18n="docs.int.opencode.tip_title">Tip</div>
+        <p data-i18n="docs.int.opencode.tip_body">The <code>{env:ROUTECAT_API_KEY}</code> syntax tells OpenCode to read the key from your environment &mdash; so your key never ends up committed to a repository. You can add more models to the <code>models</code> block at any time; check available ones at <a href="https://route.cat/#pricing">route.cat/pricing</a>.</p>
+      </div>
+    </section>
+
+    <!-- ── Generic / Any OpenAI app ── -->
+    <section id="int-generic">
+      <h2 data-i18n="docs.int.generic.title">Any OpenAI-compatible app</h2>
+      <p data-i18n="docs.int.generic.desc">RouteCat works with <strong>any</strong> tool that supports the OpenAI API. If your app has a settings page for "OpenAI" or "Custom API", you can point it to RouteCat. Here's the universal pattern:</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th data-i18n="docs.int.generic.th_setting">Setting</th>
+            <th data-i18n="docs.int.generic.th_value">Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-i18n="docs.int.generic.base_url">API Base URL</td>
+            <td><code>https://route.cat/v1</code></td>
+          </tr>
+          <tr>
+            <td data-i18n="docs.int.generic.api_key">API Key</td>
+            <td><code>rc_YOUR_KEY</code></td>
+          </tr>
+          <tr>
+            <td data-i18n="docs.int.generic.model">Model</td>
+            <td data-i18n="docs.int.generic.model_val">Any model from <a href="https://route.cat/#pricing">the pricing table</a> (e.g. <code>qwen2.5:7b</code>)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 data-i18n="docs.int.generic.env_title">Environment variables</h3>
+      <p data-i18n="docs.int.generic.env_desc">Many tools also accept configuration via environment variables:</p>
+      <div class="code-block">
+        <span class="code-label">Shell</span>
+        <pre><code><span class="cmd">export</span> OPENAI_API_BASE=<span class="str">https://route.cat/v1</span>
+<span class="cmd">export</span> OPENAI_API_KEY=<span class="str">rc_YOUR_KEY</span></code></pre>
+      </div>
+
+      <h3 data-i18n="docs.int.generic.python_title">Python (OpenAI SDK)</h3>
+      <div class="code-block">
+        <span class="code-label">Python</span>
+        <pre><code><span class="kw">from</span> openai <span class="kw">import</span> OpenAI
+
+client = OpenAI(
+    base_url=<span class="str">"https://route.cat/v1"</span>,
+    api_key=<span class="str">"rc_YOUR_KEY"</span>,
+)
+
+response = client.chat.completions.create(
+    model=<span class="str">"qwen2.5:7b"</span>,
+    messages=[{<span class="str">"role"</span>: <span class="str">"user"</span>, <span class="str">"content"</span>: <span class="str">"Hello!"</span>}],
+)
+<span class="fn">print</span>(response.choices[<span class="num">0</span>].message.content)</code></pre>
+      </div>
+
+      <h3 data-i18n="docs.int.generic.node_title">Node.js (OpenAI SDK)</h3>
+      <div class="code-block">
+        <span class="code-label">JavaScript</span>
+        <pre><code><span class="kw">import</span> OpenAI <span class="kw">from</span> <span class="str">"openai"</span>;
+
+<span class="kw">const</span> client = <span class="kw">new</span> <span class="fn">OpenAI</span>({
+  baseURL: <span class="str">"https://route.cat/v1"</span>,
+  apiKey: <span class="str">"rc_YOUR_KEY"</span>,
+});
+
+<span class="kw">const</span> response = <span class="kw">await</span> client.chat.completions.<span class="fn">create</span>({
+  model: <span class="str">"qwen2.5:7b"</span>,
+  messages: [{ role: <span class="str">"user"</span>, content: <span class="str">"Hello!"</span> }],
+});
+console.<span class="fn">log</span>(response.choices[<span class="num">0</span>].message.content);</code></pre>
+      </div>
+
+      <div class="callout callout-warn">
+        <div class="callout-title" data-i18n="docs.int.generic.warn_title">Important</div>
+        <p data-i18n="docs.int.generic.warn_body">Always use the exact model name as shown in the <a href="https://route.cat/#pricing">pricing table</a>, including the tag (e.g. <code>qwen2.5:7b</code>, not <code>qwen2.5</code>). If the model name doesn't match a connected node, you'll get a <code>503</code> error.</p>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
     <!-- Streaming                                   -->
     <!-- ═══════════════════════════════════════════ -->
     <section id="streaming">
@@ -799,11 +1113,11 @@ stream = client.chat.completions.<span class="fn">create</span>(
 
         <div class="step">
           <h4 data-i18n="docs.provider.step2_title">Install Owlrun</h4>
-          <p data-i18n="docs.provider.step2_desc">Download the Owlrun binary for your platform from the <a href="https://github.com/aaronFortuno/owlrun/releases" target="_blank" rel="noopener">releases page</a>, or build from source.</p>
+          <p data-i18n="docs.provider.step2_desc">Download the Owlrun binary for your platform from the <a href="https://github.com/routecat/owlrun/releases" target="_blank" rel="noopener">releases page</a>, or build from source.</p>
           <div class="code-block">
             <span class="code-label">Shell</span>
             <pre><code><span class="comment"># Download latest release (Linux amd64)</span>
-<span class="cmd">wget</span> https://github.com/aaronFortuno/owlrun/releases/latest/download/owlrun-linux-amd64
+<span class="cmd">wget</span> https://github.com/routecat/owlrun/releases/latest/download/owlrun-linux-amd64
 <span class="cmd">chmod</span> +x owlrun-linux-amd64
 <span class="cmd">sudo</span> mv owlrun-linux-amd64 /usr/local/bin/owlrun</code></pre>
           </div>
@@ -903,7 +1217,7 @@ stream = client.chat.completions.<span class="fn">create</span>(
     <hr>
 
     <p class="dim" style="text-align: center; font-size: 0.85rem;" data-i18n="docs.footer">
-      RouteCat is open source. Contribute on <a href="https://github.com/aaronFortuno/routecat">GitHub</a>.
+      RouteCat is open source. Contribute on <a href="https://github.com/routecat/routecat">GitHub</a>.
     </p>
 
   </div>
@@ -940,6 +1254,83 @@ stream = client.chat.completions.<span class="fn">create</span>(
   }, { rootMargin: '-20% 0px -70% 0px' });
 
   sections.forEach(section => observer.observe(section));
+
+  // ── i18n ──
+  var _i18n = {};
+  var _supportedLangs = ['en', 'ca', 'es', 'gl', 'eu', 'fr', 'de', 'it'];
+  var _lang = (function() {
+    var saved = localStorage.getItem('routecat-lang');
+    if (saved && _supportedLangs.indexOf(saved) !== -1) return saved;
+    var b = (navigator.language || 'en').substring(0, 2).toLowerCase();
+    return _supportedLangs.indexOf(b) !== -1 ? b : 'en';
+  })();
+
+  async function loadLocale(lang) {
+    if (_i18n[lang]) return;
+    try {
+      var r = await fetch('/locales/' + lang + '.json');
+      _i18n[lang] = await r.json();
+    } catch(e) {}
+  }
+
+  function applyI18n() {
+    var dict = _i18n[_lang] || {};
+    document.querySelectorAll('[data-i18n]').forEach(function(el) {
+      var key = el.getAttribute('data-i18n');
+      if (!el.getAttribute('data-orig')) el.setAttribute('data-orig', el.innerHTML);
+      if (dict[key]) el.innerHTML = dict[key];
+    });
+  }
+
+  function updateLangUI() {
+    var cur = document.getElementById('lang-current');
+    if (cur) cur.textContent = _lang.toUpperCase();
+    var dd = document.getElementById('lang-dropdown');
+    if (dd) {
+      dd.querySelectorAll('button').forEach(function(btn) {
+        btn.classList.toggle('active', btn.getAttribute('data-lang') === _lang);
+      });
+    }
+  }
+
+  function toggleLangDropdown() {
+    var dd = document.getElementById('lang-dropdown');
+    if (dd) dd.classList.toggle('open');
+  }
+
+  document.addEventListener('click', function(e) {
+    var switcher = document.querySelector('.lang-switcher');
+    var dd = document.getElementById('lang-dropdown');
+    if (dd && switcher && !switcher.contains(e.target)) {
+      dd.classList.remove('open');
+    }
+  });
+
+  async function switchLang(lang) {
+    _lang = lang;
+    localStorage.setItem('routecat-lang', lang);
+    updateLangUI();
+    var dd = document.getElementById('lang-dropdown');
+    if (dd) dd.classList.remove('open');
+    await loadLocale(lang);
+    if (lang === 'en') {
+      document.querySelectorAll('[data-i18n]').forEach(function(el) {
+        var orig = el.getAttribute('data-orig');
+        if (orig) el.innerHTML = orig;
+      });
+    } else {
+      applyI18n();
+    }
+  }
+
+  (async function() {
+    await loadLocale('en');
+    updateLangUI();
+    if (_lang !== 'en') {
+      await loadLocale(_lang);
+      applyI18n();
+    }
+  })();
 </script>
 
 </body>

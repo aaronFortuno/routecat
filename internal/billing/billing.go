@@ -3,7 +3,7 @@
 package billing
 
 import (
-	"github.com/aaronFortuno/routecat/internal/store"
+	"github.com/routecat/routecat/internal/store"
 )
 
 // ModelPricing holds per-model pricing (per million tokens).

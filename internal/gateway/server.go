@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/aaronFortuno/routecat/internal/api"
-	"github.com/aaronFortuno/routecat/internal/lightning"
-	"github.com/aaronFortuno/routecat/internal/web"
+	"github.com/routecat/routecat/internal/api"
+	"github.com/routecat/routecat/internal/lightning"
+	"github.com/routecat/routecat/internal/web"
 )
 
 // Server is the main HTTP server hosting the gateway WS, public API, and frontend.

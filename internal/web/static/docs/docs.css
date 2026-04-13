@@ -66,10 +66,15 @@ a:hover { text-decoration: underline; }
   font-size: 1.1rem;
 }
 
-.sidebar-header a:hover { text-decoration: none; color: var(--accent); }
+.sidebar-header a:hover { text-decoration: none; }
 
-.sidebar-header .logo-icon {
-  font-size: 1.3rem;
+.sidebar-logo {
+  height: 28px;
+  filter: invert(1);
+}
+
+.sidebar-header .cat {
+  color: var(--accent);
 }
 
 .sidebar-header .badge {
@@ -128,7 +133,21 @@ a:hover { text-decoration: underline; }
   padding: 1rem 1.25rem;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
+
+.lang-switcher { position: relative; }
+.lang-globe { display: flex; align-items: center; gap: 5px; background: none; border: 1px solid var(--border); color: var(--dim); border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 0.75rem; font-weight: 600; font-family: inherit; transition: all 0.15s; }
+.lang-globe:hover { color: var(--text); border-color: var(--accent); }
+.lang-globe svg { width: 14px; height: 14px; }
+.lang-dropdown { display: none; position: absolute; bottom: calc(100% + 8px); left: 0; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 4px; min-width: 130px; z-index: 300; box-shadow: 0 -4px 16px rgba(0,0,0,0.4); }
+.lang-dropdown.open { display: block; }
+.lang-dropdown button { display: block; width: 100%; text-align: left; padding: 6px 10px; background: none; border: none; color: var(--dim); cursor: pointer; border-radius: 5px; font-size: 0.82rem; font-family: inherit; transition: all 0.1s; }
+.lang-dropdown button:hover { background: rgba(245,158,11,0.1); color: var(--text); }
+.lang-dropdown button.active { color: var(--accent); font-weight: 600; }
 
 .sidebar-footer a {
   display: flex;

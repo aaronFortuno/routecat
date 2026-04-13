@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aaronFortuno/routecat/internal/store"
+	"github.com/routecat/routecat/internal/store"
 )
 
 // PayoutEngine periodically checks node balances and sends Lightning payouts.
@@ -97,7 +97,6 @@ func (pe *PayoutEngine) processPayouts() {
 			log.Printf("routecat: CRITICAL — payment sent but DB record failed! node=%s hash=%s amount=%d: %v",
 				n.NodeID, payHash, payoutSats, dbErr)
 		}
-		log.Printf("routecat: paid %d sats to %s — hash: %s", payoutSats, n.LightningAddr, payHash)
 		pe.mu.Lock()
 		pe.spentThisHour += payoutSats
 		pe.mu.Unlock()

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/subtle"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -14,9 +15,18 @@ import (
 	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"
 
-	"github.com/aaronFortuno/routecat/internal/billing"
-	"github.com/aaronFortuno/routecat/internal/router"
-	"github.com/aaronFortuno/routecat/internal/store"
+	"github.com/routecat/routecat/internal/billing"
+	"github.com/routecat/routecat/internal/router"
+	"github.com/routecat/routecat/internal/store"
+)
+
+// Security: per-job limits to prevent token inflation attacks.
+const (
+	maxTokensPerField      = 100_000     // max prompt_tokens or completion_tokens
+	maxTotalTokensPerJob   = 200_000     // max combined tokens
+	maxEarningsPerJobMsats = 200_000     // 200 sats — caps damage from any single job
+	maxConcurrentPerUser   = 3           // max simultaneous requests per user key
+	minRedeemThresholdSats = 100         // minimum payout threshold
 )
 
 // Gateway manages connected provider nodes via WebSocket.
@@ -30,6 +40,10 @@ type Gateway struct {
 	// pendingJobs stores buyer request bodies for proxy fetch.
 	jobsMu      sync.RWMutex
 	pendingJobs map[string]*PendingJob // job_id -> pending job
+
+	// userJobs tracks concurrent active jobs per user key (race condition prevention).
+	userJobsMu sync.Mutex
+	userJobs   map[string]int
 }
 
 // PendingJob holds a buyer's request while the node processes it.
@@ -81,6 +95,7 @@ func New(db *store.DB, rt *router.Router, bill *billing.Engine) *Gateway {
 		rt:          rt,
 		bill:        bill,
 		pendingJobs: make(map[string]*PendingJob),
+		userJobs:    make(map[string]int),
 	}
 	go g.jobCleanupLoop()
 	return g
@@ -107,10 +122,13 @@ func (g *Gateway) jobCleanupLoop() {
 
 		// Compensate nodes for partial work on expired jobs
 		for _, job := range expired {
+			g.decrUserJobs(job.UserKey)
 			tokensIn, tokensOut := parseUsage(job.LastChunk)
+			tokensIn, tokensOut = capTokens(tokensIn, tokensOut)
 			if tokensIn+tokensOut > 0 {
 				btcPrice := g.bill.BtcPrice()
 				_, providerMsats, feeMsats := g.bill.Calculate(job.Model, tokensIn, tokensOut, btcPrice)
+				providerMsats, feeMsats = capEarnings(providerMsats, feeMsats)
 				now := time.Now()
 				_ = g.db.RecordJob(store.Job{
 					JobID:       job.JobID,
@@ -169,6 +187,14 @@ func (g *Gateway) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	// Validate Lightning address format
 	if reg.LightningAddress != "" && !isValidLightningAddress(reg.LightningAddress) {
 		http.Error(w, "invalid lightning address", http.StatusBadRequest)
+		return
+	}
+
+	// Enforce minimum payout threshold to prevent micro-payout spam
+	if reg.RedeemThreshold < minRedeemThresholdSats {
+		http.Error(w, fmt.Sprintf(
+			`{"error":"redeem_threshold must be at least %d sats — lower values generate excessive Lightning network fees that may exceed the payout itself. Please update your owlrun.conf and restart."}`,
+			minRedeemThresholdSats), http.StatusBadRequest)
 		return
 	}
 
@@ -398,6 +424,7 @@ func (g *Gateway) handleReject(nc *NodeConn, msg WSMsg) {
 	}
 	g.jobsMu.Unlock()
 	if ok {
+		g.decrUserJobs(job.UserKey)
 		log.Printf("routecat: job %s rejected by %s: %s", msg.JobID, nc.NodeID, msg.Reason)
 	}
 }
@@ -444,10 +471,15 @@ func (g *Gateway) handleProxyDone(nc *NodeConn, msg WSMsg) {
 	}
 	close(job.DoneCh)
 
-	// Extract token usage from last SSE chunk
+	// Release concurrent slot
+	g.decrUserJobs(job.UserKey)
+
+	// Extract token usage from last SSE chunk — cap to prevent inflation
 	tokensIn, tokensOut := parseUsage(job.LastChunk)
+	tokensIn, tokensOut = capTokens(tokensIn, tokensOut)
 	btcPrice := g.bill.BtcPrice()
 	grossUSD, providerMsats, feeMsats := g.bill.Calculate(job.Model, tokensIn, tokensOut, btcPrice)
+	providerMsats, feeMsats = capEarnings(providerMsats, feeMsats)
 
 	now := time.Now()
 	if err := g.db.RecordJob(store.Job{
@@ -489,6 +521,39 @@ func (g *Gateway) handleProxyDone(nc *NodeConn, msg WSMsg) {
 		job.JobID, tokensIn, tokensOut, grossUSD, providerMsats, feeMsats)
 }
 
+// capTokens clamps token counts to prevent inflation attacks from malicious nodes.
+func capTokens(tokensIn, tokensOut int) (int, int) {
+	if tokensIn < 0 {
+		tokensIn = 0
+	}
+	if tokensOut < 0 {
+		tokensOut = 0
+	}
+	if tokensIn > maxTokensPerField {
+		tokensIn = maxTokensPerField
+	}
+	if tokensOut > maxTokensPerField {
+		tokensOut = maxTokensPerField
+	}
+	if tokensIn+tokensOut > maxTotalTokensPerJob {
+		ratio := float64(maxTotalTokensPerJob) / float64(tokensIn+tokensOut)
+		tokensIn = int(float64(tokensIn) * ratio)
+		tokensOut = int(float64(tokensOut) * ratio)
+	}
+	return tokensIn, tokensOut
+}
+
+// capEarnings limits per-job earnings to prevent a single job from draining the wallet.
+func capEarnings(providerMsats, feeMsats int64) (int64, int64) {
+	total := providerMsats + feeMsats
+	if total > maxEarningsPerJobMsats {
+		scale := float64(maxEarningsPerJobMsats) / float64(total)
+		providerMsats = int64(float64(providerMsats) * scale)
+		feeMsats = maxEarningsPerJobMsats - providerMsats
+	}
+	return providerMsats, feeMsats
+}
+
 // parseUsage extracts prompt_tokens and completion_tokens from SSE data.
 // Handles multiple formats: raw JSON, "data: {json}", or multi-line SSE.
 func parseUsage(sseData string) (tokensIn, tokensOut int) {
@@ -516,7 +581,18 @@ func parseUsage(sseData string) (tokensIn, tokensOut int) {
 
 // HandleJobProxy serves GET /v1/gateway/jobs/{job_id}/proxy/request.
 // The provider node fetches the buyer's original request body from here.
+// SECURITY: requires node API key — only the assigned node can fetch the request.
 func (g *Gateway) HandleJobProxy(w http.ResponseWriter, r *http.Request) {
+	// Authenticate node (Authorization header or api_key query param)
+	apiKey := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+	if apiKey == "" {
+		apiKey = r.URL.Query().Get("api_key")
+	}
+	if apiKey == "" {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	// Extract job_id from path: /v1/gateway/jobs/{job_id}/proxy/request
 	parts := strings.Split(r.URL.Path, "/")
 	if len(parts) < 6 {
@@ -533,6 +609,13 @@ func (g *Gateway) HandleJobProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Verify the requesting node owns this job
+	node, err := g.db.NodeByAPIKey(apiKey)
+	if err != nil || node.NodeID != job.NodeID {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(job.BuyerBody) //nolint:errcheck
 }
@@ -543,13 +626,43 @@ func (g *Gateway) HandleWithdraw(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "not implemented", http.StatusNotImplemented)
 }
 
+// ErrTooManyConcurrent is returned when a user exceeds the concurrent request limit.
+var ErrTooManyConcurrent = fmt.Errorf("too many concurrent requests (max %d)", maxConcurrentPerUser)
+
+func (g *Gateway) incrUserJobs(key string) bool {
+	g.userJobsMu.Lock()
+	defer g.userJobsMu.Unlock()
+	if g.userJobs[key] >= maxConcurrentPerUser {
+		return false
+	}
+	g.userJobs[key]++
+	return true
+}
+
+func (g *Gateway) decrUserJobs(key string) {
+	g.userJobsMu.Lock()
+	defer g.userJobsMu.Unlock()
+	if g.userJobs[key] > 0 {
+		g.userJobs[key]--
+	}
+	if g.userJobs[key] == 0 {
+		delete(g.userJobs, key)
+	}
+}
+
 // AssignJob sends a job to a specific node and returns channels for streaming.
 // Implements api.JobAssigner.
 func (g *Gateway) AssignJob(nodeID, jobID, model, userKey string, buyerBody []byte, freeTier bool) (<-chan []byte, <-chan struct{}, error) {
+	// Enforce concurrent request limit per user
+	if !g.incrUserJobs(userKey) {
+		return nil, nil, ErrTooManyConcurrent
+	}
+
 	g.mu.RLock()
 	nc, ok := g.nodes[nodeID]
 	g.mu.RUnlock()
 	if !ok {
+		g.decrUserJobs(userKey)
 		return nil, nil, router.ErrNoNode
 	}
 
@@ -578,6 +691,7 @@ func (g *Gateway) AssignJob(nodeID, jobID, model, userKey string, buyerBody []by
 		g.jobsMu.Lock()
 		delete(g.pendingJobs, jobID)
 		g.jobsMu.Unlock()
+		g.decrUserJobs(userKey)
 		return nil, nil, err
 	}
 

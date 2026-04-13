@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -109,7 +108,6 @@ func (c *LNDClient) PayAddress(address string, amountSats int64) (string, error)
 	user, domain := parts[0], parts[1]
 	lnurlURL := fmt.Sprintf("https://%s/.well-known/lnurlp/%s", domain, user)
 
-	log.Printf("routecat: [lnurl] step 1 — resolving %s", lnurlURL)
 	httpClient := &http.Client{Timeout: 10 * time.Second}
 	resp, err := httpClient.Get(lnurlURL)
 	if err != nil {
@@ -125,8 +123,6 @@ func (c *LNDClient) PayAddress(address string, amountSats int64) (string, error)
 	if err := json.NewDecoder(resp.Body).Decode(&lnurl); err != nil {
 		return "", fmt.Errorf("lnurl parse: %w", err)
 	}
-	log.Printf("routecat: [lnurl] step 1 OK — callback=%s min=%d max=%d", lnurl.Callback, lnurl.MinSendable, lnurl.MaxSendable)
-
 	amountMsats := amountSats * 1000
 	if amountMsats < lnurl.MinSendable || amountMsats > lnurl.MaxSendable {
 		return "", fmt.Errorf("amount %d sats outside range [%d-%d] msats", amountSats, lnurl.MinSendable, lnurl.MaxSendable)
@@ -138,7 +134,6 @@ func (c *LNDClient) PayAddress(address string, amountSats int64) (string, error)
 		sep = "&"
 	}
 	invoiceURL := fmt.Sprintf("%s%samount=%d", lnurl.Callback, sep, amountMsats)
-	log.Printf("routecat: [lnurl] step 2 — fetching invoice from %s", invoiceURL)
 	resp2, err := httpClient.Get(invoiceURL)
 	if err != nil {
 		return "", fmt.Errorf("fetch invoice: %w", err)
@@ -156,10 +151,7 @@ func (c *LNDClient) PayAddress(address string, amountSats int64) (string, error)
 	}
 
 	// Step 3: Pay the invoice via LND
-	log.Printf("routecat: [lnurl] step 3 — paying invoice (%d chars)", len(inv.PR))
-	hash, err := c.payInvoice(inv.PR)
-	log.Printf("routecat: [lnurl] step 3 result — hash=%q err=%v", hash, err)
-	return hash, err
+	return c.payInvoice(inv.PR)
 }
 
 // CreateInvoice generates a Lightning invoice via LND.
@@ -229,7 +221,6 @@ func (c *LNDClient) payInvoice(bolt11 string) (string, error) {
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
-	log.Printf("routecat: [lnd] sendpayment response (status %d): %s", resp.StatusCode, string(body[:min(len(body), 500)]))
 
 	if resp.StatusCode != 200 {
 		return "", fmt.Errorf("lnd pay HTTP %d: %s", resp.StatusCode, string(body[:min(len(body), 200)]))

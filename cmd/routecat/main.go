@@ -10,16 +10,16 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/aaronFortuno/routecat/internal/api"
-	"github.com/aaronFortuno/routecat/internal/billing"
-	"github.com/aaronFortuno/routecat/internal/gateway"
-	"github.com/aaronFortuno/routecat/internal/lightning"
-	"github.com/aaronFortuno/routecat/internal/router"
-	"github.com/aaronFortuno/routecat/internal/store"
+	"github.com/routecat/routecat/internal/api"
+	"github.com/routecat/routecat/internal/billing"
+	"github.com/routecat/routecat/internal/gateway"
+	"github.com/routecat/routecat/internal/lightning"
+	"github.com/routecat/routecat/internal/router"
+	"github.com/routecat/routecat/internal/store"
 )
 
 var (
-	version = "0.1.0"
+	version = "0.2.0"
 	commit  = "dev" // injected at build time via -ldflags
 )
 

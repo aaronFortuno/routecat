@@ -12,9 +12,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aaronFortuno/routecat/internal/billing"
-	"github.com/aaronFortuno/routecat/internal/router"
-	"github.com/aaronFortuno/routecat/internal/store"
+	"github.com/routecat/routecat/internal/billing"
+	"github.com/routecat/routecat/internal/router"
+	"github.com/routecat/routecat/internal/store"
 	"github.com/google/uuid"
 )
 
@@ -115,7 +115,40 @@ type API struct {
 
 // New creates the public API.
 func New(rt *router.Router, bill *billing.Engine, db *store.DB, build BuildInfo) *API {
-	return &API{rt: rt, bill: bill, db: db, build: build, regLimit: make(map[string][]time.Time)}
+	a := &API{
+		rt:       rt,
+		bill:     bill,
+		db:       db,
+		build:    build,
+		regLimit: make(map[string][]time.Time),
+	}
+	go a.cleanupRegLimit()
+	return a
+}
+
+
+// cleanupRegLimit periodically removes stale entries from rate limiter maps.
+func (a *API) cleanupRegLimit() {
+	ticker := time.NewTicker(10 * time.Minute)
+	defer ticker.Stop()
+	for range ticker.C {
+		cutoff := time.Now().Add(-time.Hour)
+		a.regMu.Lock()
+		for ip, reqs := range a.regLimit {
+			valid := reqs[:0]
+			for _, t := range reqs {
+				if t.After(cutoff) {
+					valid = append(valid, t)
+				}
+			}
+			if len(valid) == 0 {
+				delete(a.regLimit, ip)
+			} else {
+				a.regLimit[ip] = valid
+			}
+		}
+		a.regMu.Unlock()
+	}
 }
 
 // SetAssigner wires the gateway's job assignment function.
@@ -234,7 +267,7 @@ func (a *API) HandleChatCompletions(w http.ResponseWriter, r *http.Request) {
 	balance, _ := a.db.UserBalance(userKey)
 	isPlayground := r.Header.Get("X-Playground") == "true"
 	if isPlayground && remaining > 0 {
-		// Free playground request — allowed
+		// Free playground request — allowed (capped at 10/day per key)
 	} else if balance > 0 {
 		// Paid request — allowed
 	} else if remaining > 0 && !isPlayground {
@@ -282,7 +315,11 @@ func (a *API) HandleChatCompletions(w http.ResponseWriter, r *http.Request) {
 	jobID := uuid.New().String()
 	responseCh, doneCh, err := a.assign.AssignJob(nodeID, jobID, req.Model, userKey, body, false)
 	if err != nil {
-		http.Error(w, `{"error":{"message":"node unavailable","type":"server_error"}}`, http.StatusBadGateway)
+		if strings.Contains(err.Error(), "concurrent") {
+			http.Error(w, `{"error":{"message":"too many concurrent requests — wait for current requests to finish","type":"rate_limit_error"}}`, http.StatusTooManyRequests)
+		} else {
+			http.Error(w, `{"error":{"message":"node unavailable","type":"server_error"}}`, http.StatusBadGateway)
+		}
 		return
 	}
 

@@ -18,7 +18,8 @@
     <a href="/docs/" data-i18n="nav.docs">Docs</a>
     <a href="#account" data-i18n="nav.acct">Account</a>
     <a href="#playground" data-i18n="nav.pg">Playground</a>
-    <a href="https://github.com/aaronFortuno/routecat" target="_blank">GitHub</a>
+    <a href="#community" data-i18n="nav.community">Community</a>
+    <a href="https://github.com/routecat/routecat" target="_blank">GitHub</a>
   </div>
   <div class="lang-switcher">
     <button class="lang-globe" onclick="toggleLangDropdown()" aria-label="Language">
@@ -29,6 +30,11 @@
       <button onclick="switchLang('en')" data-lang="en">English</button>
       <button onclick="switchLang('ca')" data-lang="ca">Catal&agrave;</button>
       <button onclick="switchLang('es')" data-lang="es">Espa&ntilde;ol</button>
+      <button onclick="switchLang('gl')" data-lang="gl">Galego</button>
+      <button onclick="switchLang('eu')" data-lang="eu">Euskara</button>
+      <button onclick="switchLang('fr')" data-lang="fr">Fran&ccedil;ais</button>
+      <button onclick="switchLang('de')" data-lang="de">Deutsch</button>
+      <button onclick="switchLang('it')" data-lang="it">Italiano</button>
     </div>
   </div>
 </nav>
@@ -40,7 +46,7 @@
   <div class="hero-btns">
     <a href="#playground" class="btn btn-primary" data-i18n="hero.try">Try it now</a>
     <a href="/docs/" class="btn btn-outline" data-i18n="hero.docs">API docs</a>
-    <a href="https://github.com/aaronFortuno/routecat" class="btn btn-outline" target="_blank" data-i18n="hero.source">View source</a>
+    <a href="https://github.com/routecat/routecat" class="btn btn-outline" target="_blank" data-i18n="hero.source">View source</a>
   </div>
 </div>
 
@@ -303,7 +309,7 @@ response = client.chat.completions.create(
   <div class="provider-grid">
     <div class="feature">
       <h3 data-i18n="prov.quickstart">Quick start</h3>
-      <p data-i18n="prov.quickstart.text">1. Install <a href="https://ollama.com">Ollama</a> and pull a model<br>2. Install <a href="https://github.com/aaronFortuno/owlrun">Owlrun</a> (our fork with multi-language dashboard)<br>3. Edit <code>~/.owlrun/owlrun.conf</code><br>4. Restart — start earning sats</p>
+      <p data-i18n="prov.quickstart.text">1. Install <a href="https://ollama.com">Ollama</a> and pull a model<br>2. Install <a href="https://github.com/routecat/owlrun">Owlrun</a> (our fork with multi-language dashboard)<br>3. Edit <code>~/.owlrun/owlrun.conf</code><br>4. Restart — start earning sats</p>
     </div>
     <div class="feature">
       <h3 data-i18n="prov.config">Configuration</h3>
@@ -329,7 +335,7 @@ lightning_address = <span class="str">you@wallet.com</span>
     </details>
     <details class="faq-item">
       <summary data-i18n="faq.q2">How can I verify the gateway is honest?</summary>
-      <p data-i18n="faq.a2">Three ways: (1) The code is <a href="https://github.com/aaronFortuno/routecat">open source</a> — read it yourself. (2) The <code>/v1/stats</code> endpoint shows the exact git commit hash of the running binary — you can rebuild from source and compare. (3) The <code>/v1/audit</code> endpoint shows all completed jobs with token counts, earnings, and fees — no hidden charges.</p>
+      <p data-i18n="faq.a2">Three ways: (1) The code is <a href="https://github.com/routecat/routecat">open source</a> — read it yourself. (2) The <code>/v1/stats</code> endpoint shows the exact git commit hash of the running binary — you can rebuild from source and compare. (3) The <code>/v1/audit</code> endpoint shows all completed jobs with token counts, earnings, and fees — no hidden charges.</p>
     </details>
     <details class="faq-item">
       <summary data-i18n="faq.q3">How are providers paid?</summary>
@@ -350,16 +356,41 @@ lightning_address = <span class="str">you@wallet.com</span>
   </div>
 </section>
 
+<!-- Community -->
+<section id="community">
+  <h2 data-i18n="community.title">Community</h2>
+  <p class="subtitle" data-i18n="community.sub">Questions, ideas, or just want to say hi? Join the conversation.</p>
+  <div class="features" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr))">
+    <a href="https://t.me/routecat" target="_blank" class="feature" style="text-decoration:none">
+      <div class="feature-icon">&#x1f4e2;</div>
+      <h3 data-i18n="community.channel.t">Telegram Channel</h3>
+      <p data-i18n="community.channel.p">Announcements, updates, and new features. Follow to stay in the loop.</p>
+    </a>
+    <a href="https://t.me/routecatchat" target="_blank" class="feature" style="text-decoration:none">
+      <div class="feature-icon">&#x1f4ac;</div>
+      <h3 data-i18n="community.chat.t">Telegram Chat</h3>
+      <p data-i18n="community.chat.p">Ask questions, report issues, share ideas, or help others. Open to everyone.</p>
+    </a>
+    <a href="https://github.com/routecat/routecat/issues" target="_blank" class="feature" style="text-decoration:none">
+      <div class="feature-icon">&#x1f41b;</div>
+      <h3 data-i18n="community.issues.t">Bug Reports &amp; PRs</h3>
+      <p data-i18n="community.issues.p">Found a bug or have an improvement? Open an issue or submit a pull request on GitHub. Every contribution helps.</p>
+    </a>
+  </div>
+</section>
+
 <footer>
   <div class="footer-inner">
     <div>
-      <p data-i18n="footer.oss">RouteCat is <a href="https://github.com/aaronFortuno/routecat">open source</a> under MIT license.</p>
+      <p data-i18n="footer.oss">RouteCat is <a href="https://github.com/routecat/routecat">open source</a> under MIT license.</p>
       <p style="margin-top:4px"><img src="/logo.svg" alt="RouteCat" class="footer-logo"> route.cat</p>
     </div>
     <div class="footer-links">
       <a href="/docs/" data-i18n="nav.docs">Docs</a>
       <span>&middot;</span>
-      <a href="https://github.com/aaronFortuno/routecat">GitHub</a>
+      <a href="https://t.me/routecat">Telegram</a>
+      <span>&middot;</span>
+      <a href="https://github.com/routecat/routecat">GitHub</a>
     </div>
   </div>
 </footer>

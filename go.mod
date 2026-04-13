@@ -1,4 +1,4 @@
-module github.com/aaronFortuno/routecat
+module github.com/routecat/routecat
 
 go 1.26.1
 

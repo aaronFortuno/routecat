@@ -1,12 +1,13 @@
-<p align="center"><img src="logo.png" alt="RouteCat" width="280"></p>
+<p align="center"><img src="internal/web/static/logo.svg" alt="RouteCat" width="160"></p>
 
 # RouteCat
 
 **Open-source AI inference gateway** — routes user requests to community GPU nodes, meters tokens transparently, pays providers via Lightning Network.
 
-[route.cat](https://route.cat) · [API Docs](#api) · [Run a Node](#run-a-node) · [Architecture](#architecture) · [Privacy](#privacy) · [Verify](#verify)
+[route.cat](https://route.cat) · [API Docs](https://route.cat/docs/) · [Telegram](https://t.me/routecat) · [Run a Node](#run-a-node) · [Self-host](#self-hosting)
 
-> **Status: v0.1 beta** — The gateway is live and serving requests at [route.cat](https://route.cat).
+> **Status: v0.2 beta** — The gateway is live and serving requests at [route.cat](https://route.cat).
+> Available in 8 languages: English, Catalan, Spanish, Galician, Basque, French, German, Italian.
 
 ---
 
@@ -36,11 +37,7 @@ curl -X POST https://route.cat/v1/auth/topup \
   -d '{"amount_sats":1000}'
 # Returns a Lightning invoice — pay it with any wallet
 
-# 3. Check your balance
-curl https://route.cat/v1/auth/balance \
-  -H "Authorization: Bearer rc_YOUR_KEY"
-
-# 4. Send a chat completion
+# 3. Send a chat completion
 curl https://route.cat/v1/chat/completions \
   -H "Authorization: Bearer rc_YOUR_KEY" \
   -H "Content-Type: application/json" \
@@ -62,9 +59,21 @@ for chunk in response:
     print(chunk.choices[0].delta.content or "", end="")
 ```
 
+### Use with your tools
+
+RouteCat works with any OpenAI-compatible client. See the full [integration guides](https://route.cat/docs/#integrations) for step-by-step setup:
+
+| Tool | Config |
+|------|--------|
+| **VS Code (Continue)** | `apiBase: https://route.cat/v1` in `config.yaml` |
+| **Cursor** | Settings → Models → OpenAI-compatible |
+| **Open WebUI** | Settings → Connections → add URL + key |
+| **ChatBox** | Settings → OpenAI API Compatible |
+| **OpenCode** | `opencode.json` with `@ai-sdk/openai-compatible` provider |
+
 ### As a provider (earn Bitcoin)
 
-Use our [Owlrun fork](https://github.com/aaronFortuno/owlrun) (multi-language dashboard, modular UI) or any compatible provider client:
+Use our [Owlrun fork](https://github.com/routecat/owlrun) (multi-language dashboard, modular UI) or any compatible provider client:
 
 ```ini
 # ~/.owlrun/owlrun.conf
@@ -79,7 +88,7 @@ Restart the client. Your node will register, appear on the network, and start re
 
 ## API
 
-All endpoints are OpenAI-compatible.
+Full documentation at **[route.cat/docs](https://route.cat/docs/)** — includes request/response schemas, streaming, billing details, error codes, and integration guides.
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
@@ -99,16 +108,6 @@ Authorization: Bearer rc_YOUR_API_KEY
 
 API keys start with `rc_` and are shown only once at creation. The free tier (10 requests/day) works only from the web playground. Direct API access requires a positive sats balance.
 
-### Models & pricing
-
-Pricing is per million tokens. Providers keep 95%, the gateway takes a 5% flat fee. Prices scale with model size — from $0.005/M for small models to $0.15/M for large ones.
-
-```bash
-curl https://route.cat/v1/models
-```
-
-Live pricing, a playground, and an interactive top-up flow are available at [route.cat](https://route.cat).
-
 ## Privacy
 
 RouteCat acts as a privacy proxy between users and inference nodes:
@@ -119,13 +118,119 @@ RouteCat acts as a privacy proxy between users and inference nodes:
 - **API key = identity** — generated with `crypto/rand`, no personal data attached
 - **Open source** — verify these claims by reading the code
 
-## Verify
+## Self-hosting
 
-We believe transparency is earned, not claimed. Three mechanisms:
+Run your own RouteCat gateway on your own infrastructure.
 
-1. **Source code** — [Read it](https://github.com/aaronFortuno/routecat). Every line is public.
-2. **Build hash** — `/v1/stats` returns the git commit hash of the running binary. Rebuild from source and compare: `go build -ldflags "-X main.commit=$(git rev-parse --short HEAD)" ./cmd/routecat`
-3. **Audit log** — `/v1/audit` returns the last 100 completed jobs with model, tokens, earnings, and fees. No user keys or prompts — just billing data anyone can verify.
+### Prerequisites
+
+- Go 1.21+ (for building from source)
+- SQLite (embedded, no external dependency)
+- LND node (optional — payouts work without it, they just queue)
+- A domain + reverse proxy (Caddy recommended for auto-HTTPS)
+
+### Build from source
+
+```bash
+git clone https://github.com/routecat/routecat.git
+cd routecat
+
+# Build with version info
+COMMIT=$(git rev-parse --short HEAD)
+go build -ldflags "-X main.version=0.2.0 -X main.commit=$COMMIT" \
+  -o routecat ./cmd/routecat
+
+# Generate checksum for verification
+sha256sum routecat > routecat.sha256
+```
+
+### Cross-compile for Linux (from Windows/macOS)
+
+```bash
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 \
+  go build -ldflags "-X main.version=0.2.0 -X main.commit=$(git rev-parse --short HEAD)" \
+  -o routecat ./cmd/routecat
+```
+
+### Run
+
+```bash
+# Minimal (no Lightning — users can't pay, but inference works)
+./routecat -addr :8080 -db data/routecat.db -fee 5.0
+
+# Full (with LND payouts via Tailscale)
+./routecat -addr :8080 -db data/routecat.db -fee 5.0 \
+  -lnd-addr 100.x.x.x:8080 \
+  -lnd-macaroon /path/to/admin.macaroon \
+  -lnd-tls /path/to/tls.cert
+```
+
+### CLI flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `-addr` | `:8080` | Listen address |
+| `-db` | `routecat.db` | SQLite database path |
+| `-fee` | `5.0` | Gateway fee percentage |
+| `-lnd-addr` | *(none)* | LND REST API address |
+| `-lnd-macaroon` | *(none)* | Path to LND macaroon |
+| `-lnd-tls` | *(none)* | Path to LND TLS cert |
+| `-version` | | Print version and exit |
+
+### Deployment
+
+See [`deploy/`](deploy/) for production setup:
+- `routecat.service` — systemd unit file with security hardening
+- `Caddyfile` — reverse proxy with auto-HTTPS and WebSocket support
+- `setup.sh` — VPS setup script (Ubuntu, Caddy, Tailscale)
+
+### Verify your build
+
+Every running RouteCat instance exposes its git commit hash:
+
+```bash
+curl -s https://route.cat/v1/stats | jq '.commit'
+```
+
+To verify the binary matches the source:
+
+```bash
+# 1. Check the commit hash of the running instance
+COMMIT=$(curl -s https://route.cat/v1/stats | jq -r '.commit')
+
+# 2. Build from that exact commit
+git checkout $COMMIT
+go build -ldflags "-X main.version=0.2.0 -X main.commit=$COMMIT" -o routecat-verify ./cmd/routecat
+
+# 3. Compare checksums
+sha256sum routecat routecat-verify
+```
+
+If the hashes match, the running binary was built from the public source code.
+
+## Security
+
+### Network & transport
+- Rate limiting: 60 requests/min per IP (mutation endpoints only)
+- Request body size limit: 1 MB
+- User registration: 3 keys/hour per IP
+- Constant-time API key comparison (timing attack resistant)
+- systemd hardening: `NoNewPrivileges`, `ProtectSystem=strict`
+
+### Anti-drain protections
+- **Per-job token cap**: max 100K tokens per field, 200K total per job
+- **Per-job earnings cap**: max 200 sats per single job
+- **LND spending cap**: 10,000 sats/hour (configurable)
+- **Minimum payout threshold**: 100 sats (prevents micro-payout spam)
+- **Concurrent request limit**: max 3 simultaneous requests per user key
+- **Payout requires valid payment hash**: no phantom payouts recorded
+
+### Job & billing integrity
+- WebSocket sender validation: nodes can only complete their own jobs
+- Job proxy endpoint authenticated: only the assigned node can fetch the buyer's request
+- Atomic balance deduction (SQLite transactions)
+- Stale job cleanup: 10-minute timeout with partial compensation
+- Invoice expiry: 10 minutes, idempotent crediting (no double-credit)
 
 ## Architecture
 
@@ -152,120 +257,30 @@ completions               │  (OpenAI compat)  │
                          ├───────────────────┤
                          │  Invoice Watcher  │  ← user top-ups,
                          │                   │    balance crediting
+                         ├───────────────────┤
+                         │  Frontend + Docs  │  ← embedded static files,
+                         │  8 languages      │    i18n, API docs
                          └───────────────────┘
 ```
 
-### Components
+### Packages
 
 | Package | Description |
 |---------|-------------|
 | `cmd/routecat` | Entry point, CLI flags, service wiring |
-| `internal/gateway` | WebSocket hub, node lifecycle, proxy streaming, HTTP server, rate limiting |
+| `internal/gateway` | WebSocket hub, node lifecycle, proxy streaming, HTTP server, security middleware |
 | `internal/router` | Job routing: model match → lowest queue depth |
 | `internal/billing` | Token metering, USD→msats conversion, BTC price feed (CoinGecko) |
 | `internal/lightning` | LND REST client, LNURL resolution, payout engine, invoice watcher |
 | `internal/store` | SQLite: nodes, jobs, payouts, user API keys, invoices, balances |
 | `internal/api` | Public API, user registration, top-up, balance, audit log |
-| `internal/web` | Embedded frontend (landing, pricing, playground, FAQ, i18n) |
+| `internal/web` | Embedded frontend: landing, docs, pricing, playground, i18n (8 locales) |
 
-### Protocol
+## Community
 
-RouteCat implements the same WebSocket protocol as the Owlrun gateway, making it compatible with existing provider nodes:
-
-- **Registration**: `POST /v1/gateway/register` with node ID, GPU info, models, Lightning address
-- **Control channel**: `WS /v1/gateway/ws?api_key=X` — heartbeat, job assignment, proxy streaming
-- **Job flow**: gateway assigns job → node accepts → node fetches buyer request → streams Ollama response → gateway meters tokens → bills provider and user
-
-## Run a Node
-
-### Requirements
-
-- A GPU (NVIDIA recommended, 8GB+ VRAM)
-- [Ollama](https://ollama.com) installed with at least one model
-- [Owlrun](https://github.com/aaronFortuno/owlrun) provider client
-
-### Setup
-
-1. Install Ollama and pull a model: `ollama pull qwen2.5:7b`
-2. Install [Owlrun](https://github.com/aaronFortuno/owlrun)
-3. Edit `~/.owlrun/owlrun.conf`:
-   ```ini
-   [marketplace]
-   gateway = https://route.cat
-
-   [account]
-   lightning_address = you@walletofsatoshi.com
-   ```
-4. Restart Owlrun — your node connects and starts earning
-
-## Self-hosting
-
-Run your own gateway:
-
-```bash
-# Build (injects git commit hash)
-COMMIT=$(git rev-parse --short HEAD)
-go build -ldflags "-X main.version=0.1.0 -X main.commit=$COMMIT" -o routecat ./cmd/routecat
-
-# Run (minimal, no Lightning)
-./routecat -addr :8080 -db data/routecat.db -fee 5.0
-
-# Run (with LND payouts)
-./routecat -addr :8080 -db data/routecat.db -fee 5.0 \
-  -lnd-addr 100.x.x.x:8080 \
-  -lnd-macaroon /path/to/admin.macaroon \
-  -lnd-tls /path/to/tls.cert
-```
-
-### CLI flags
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `-addr` | `:8080` | Listen address |
-| `-db` | `routecat.db` | SQLite database path |
-| `-fee` | `5.0` | Gateway fee percentage |
-| `-lnd-addr` | *(none)* | LND REST API address |
-| `-lnd-macaroon` | *(none)* | Path to LND macaroon |
-| `-lnd-tls` | *(none)* | Path to LND TLS cert |
-
-### Deployment
-
-See [`deploy/`](deploy/) for:
-- `routecat.service` — systemd unit file with security hardening
-- `Caddyfile` — reverse proxy with auto-HTTPS
-- `setup.sh` — VPS setup script (Ubuntu, Caddy, Tailscale)
-
-## Security
-
-- Rate limiting: 60 requests/min per IP, 3 registrations/hour per IP
-- Free tier restricted to web playground (prevents API abuse)
-- Request body size limit: 1MB
-- Constant-time API key comparison (timing attack resistant)
-- WebSocket message sender validation (nodes can only complete their own jobs)
-- Stale job cleanup: 2-minute timeout
-- LND spending cap: 10,000 sats/hour
-- Invoice expiry: 10 minutes, idempotent crediting (no double-spend)
-- Atomic balance operations (SQLite transactions)
-- systemd hardening: `NoNewPrivileges`, `ProtectSystem=strict`
-
-## Tech stack
-
-- **Go** — gateway, routing, billing, API (zero CGO)
-- **SQLite** — persistence (nodes, jobs, payouts, invoices, API keys)
-- **LND** — Lightning payments via REST API
-- **Caddy** — reverse proxy, auto-HTTPS
-- **Tailscale** — secure tunnel to LND node
-
-## Contributing
-
-Contributions welcome. The project is MIT licensed.
-
-```bash
-git clone https://github.com/aaronFortuno/routecat.git
-cd routecat
-go build ./cmd/routecat
-./routecat -addr :8080 -db test.db
-```
+- **Telegram channel**: [t.me/routecat](https://t.me/routecat) — announcements and updates
+- **Telegram chat**: [t.me/routecatchat](https://t.me/routecatchat) — questions, ideas, help
+- **GitHub Issues**: [Report bugs](https://github.com/routecat/routecat/issues) or submit pull requests
 
 ## License
 

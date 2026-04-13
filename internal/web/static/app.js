@@ -3,7 +3,7 @@
 
 // ── i18n ─────────────────────────────────────────────────────
 var _i18n = {};
-var _supportedLangs = ['en', 'ca', 'es'];
+var _supportedLangs = ['en', 'ca', 'es', 'gl', 'eu', 'fr', 'de', 'it'];
 
 function detectLang() {
   var saved = localStorage.getItem('routecat-lang');
