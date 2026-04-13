@@ -85,16 +85,19 @@ func (pe *PayoutEngine) processPayouts() {
 		payHash, err := pe.ln.PayAddress(n.LightningAddr, payoutSats)
 		if err != nil {
 			log.Printf("routecat: payout failed for %s: %v", n.NodeID, err)
-			if dbErr := pe.db.RecordPayout(n.NodeID, payoutSats*1000, "", "failed"); dbErr != nil {
-				log.Printf("routecat: CRITICAL — failed to record failed payout for %s: %v", n.NodeID, dbErr)
-			}
-			continue
+			continue // don't record anything — payment never happened
+		}
+		if payHash == "" {
+			log.Printf("routecat: payout to %s returned no payment hash — not recording", n.NodeID)
+			continue // LND didn't confirm the payment
 		}
 
+		// Only record after confirmed payment with a valid hash
 		if dbErr := pe.db.RecordPayout(n.NodeID, payoutSats*1000, payHash, "confirmed"); dbErr != nil {
 			log.Printf("routecat: CRITICAL — payment sent but DB record failed! node=%s hash=%s amount=%d: %v",
 				n.NodeID, payHash, payoutSats, dbErr)
 		}
+		log.Printf("routecat: paid %d sats to %s — hash: %s", payoutSats, n.LightningAddr, payHash)
 		pe.mu.Lock()
 		pe.spentThisHour += payoutSats
 		pe.mu.Unlock()

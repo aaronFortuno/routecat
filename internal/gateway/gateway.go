@@ -308,7 +308,7 @@ func (g *Gateway) handleHeartbeat(nc *NodeConn, msg WSMsg) {
 	var wdHist []Withdraw
 	for _, w := range withdraws {
 		wdHist = append(wdHist, Withdraw{
-			AmountSats:  w.AmountMsats / 1000,
+			AmountSats:  w.AmountMsats, // client expects msats despite field name
 			PaymentHash: w.PaymentHash,
 			Timestamp:   w.CreatedAt.Format("2006-01-02T15:04:05Z"),
 		})
