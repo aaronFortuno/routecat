@@ -185,20 +185,26 @@ func (c *LNDClient) CreateInvoice(amountSats int64, memo string) (string, string
 
 // CheckInvoice checks if a Lightning invoice has been paid.
 func (c *LNDClient) CheckInvoice(paymentHash string) (bool, error) {
-	rHashB64 := hexToB64URL(paymentHash)
-	resp, err := c.do("GET", "/v1/invoice/"+rHashB64, nil)
+	// LND REST accepts the hex hash directly in the URL path
+	resp, err := c.do("GET", "/v1/invoice/"+paymentHash, nil)
 	if err != nil {
 		return false, fmt.Errorf("lnd lookup: %w", err)
 	}
 	defer resp.Body.Close()
 
-	var result struct {
-		State string `json:"state"` // "OPEN", "SETTLED", "CANCELED", "ACCEPTED"
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != 200 {
+		return false, fmt.Errorf("lnd lookup HTTP %d: %s", resp.StatusCode, string(body[:min(len(body), 100)]))
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+
+	var result struct {
+		Settled bool   `json:"settled"`
+		State   string `json:"state"`
+	}
+	if err := json.Unmarshal(body, &result); err != nil {
 		return false, err
 	}
-	return result.State == "SETTLED", nil
+	return result.Settled || result.State == "SETTLED", nil
 }
 
 func b64ToHex(s string) string {
