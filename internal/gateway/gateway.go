@@ -86,21 +86,52 @@ func New(db *store.DB, rt *router.Router, bill *billing.Engine) *Gateway {
 	return g
 }
 
-// jobCleanupLoop removes pending jobs older than 2 minutes (dead streams).
+// jobCleanupLoop removes pending jobs older than 10 minutes (dead streams).
+// Jobs that have been actively streaming (LastChunk set) are compensated
+// for the tokens already served.
 func (g *Gateway) jobCleanupLoop() {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 	for range ticker.C {
-		cutoff := time.Now().Add(-2 * time.Minute)
+		cutoff := time.Now().Add(-10 * time.Minute)
 		g.jobsMu.Lock()
+		var expired []*PendingJob
 		for id, job := range g.pendingJobs {
 			if job.StartedAt.Before(cutoff) {
 				close(job.DoneCh)
 				delete(g.pendingJobs, id)
-				log.Printf("routecat: expired stale job %s (node %s)", id, job.NodeID)
+				expired = append(expired, job)
 			}
 		}
 		g.jobsMu.Unlock()
+
+		// Compensate nodes for partial work on expired jobs
+		for _, job := range expired {
+			tokensIn, tokensOut := parseUsage(job.LastChunk)
+			if tokensIn+tokensOut > 0 {
+				btcPrice := g.bill.BtcPrice()
+				_, providerMsats, feeMsats := g.bill.Calculate(job.Model, tokensIn, tokensOut, btcPrice)
+				now := time.Now()
+				_ = g.db.RecordJob(store.Job{
+					JobID:       job.JobID,
+					NodeID:      job.NodeID,
+					UserKey:     job.UserKey,
+					Model:       job.Model,
+					TokensIn:    tokensIn,
+					TokensOut:   tokensOut,
+					EarnedMsats: providerMsats,
+					FeeMsats:    feeMsats,
+					FreeTier:    job.FreeTier,
+					Status:      "complete",
+					StartedAt:   job.StartedAt,
+					CompletedAt: &now,
+				})
+				log.Printf("routecat: expired job %s — compensated %d+%d tokens (%d msats) to node %s",
+					job.JobID, tokensIn, tokensOut, providerMsats, job.NodeID[:8])
+			} else {
+				log.Printf("routecat: expired job %s (node %s) — no tokens to compensate", job.JobID, job.NodeID[:8])
+			}
+		}
 	}
 }
 
