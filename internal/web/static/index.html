@@ -399,6 +399,7 @@ async function loadStats() {
     document.getElementById('st-nodes').textContent = stats.nodes_online || 0;
     document.getElementById('st-jobs-24h').textContent = (stats.jobs_24h || 0).toLocaleString();
     document.getElementById('st-tokens-24h').textContent = formatTokens(stats.tokens_24h || 0);
+    updateCalcBtcPrice(stats.btc_usd || 0);
 
     // Models
     var r = await fetch('/v1/models');
@@ -443,6 +444,9 @@ setInterval(loadStats, 30000);
 
 // ── Token calculator ──────────────────────────────────────────
 var _calcModels = [];
+var _calcBtcPrice = 70000;
+// Refresh BTC price for calculator (reuses stats fetch)
+function updateCalcBtcPrice(price) { if (price > 0) _calcBtcPrice = price; }
 function updateCalcModels(models) {
   _calcModels = models;
   var sel = document.getElementById('calc-model');
@@ -466,12 +470,7 @@ function updateCalc() {
   if (!opt) return;
   var priceOut = parseFloat(opt.getAttribute('data-out'));
   if (!priceOut || priceOut <= 0) return;
-
-  // Convert sats to USD: sats / 100,000,000 * btcPrice
-  var btcPrice = 70000; // fallback
-  try { btcPrice = parseFloat(document.getElementById('st-fee').closest('.stats-bar').querySelector('#st-nodes').textContent) > 0 ? 70000 : 70000; } catch(e) {}
-  // Fetch live BTC price from our stats
-  fetch('/v1/stats').then(function(r){return r.json()}).then(function(d){ if(d.btc_usd) btcPrice = d.btc_usd; doCalc(sats, priceOut, btcPrice); }).catch(function(){ doCalc(sats, priceOut, btcPrice); });
+  doCalc(sats, priceOut, _calcBtcPrice);
 }
 
 function doCalc(sats, pricePerMOut, btcPrice) {

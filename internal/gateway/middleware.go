@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -77,9 +78,15 @@ func (rl *RateLimiter) cleanup() {
 // Middleware wraps an HTTP handler with security protections.
 func SecurityMiddleware(rl *RateLimiter, maxBodyBytes int64, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Rate limiting
-		// Use RemoteAddr only — X-Forwarded-For is set by Caddy but
-		// could be spoofed if accessed directly. Caddy sets X-Real-Ip.
+		// Skip rate limiting for public read-only endpoints and static files
+		path := r.URL.Path
+		if path == "/" || path == "/v1/models" || path == "/v1/stats" || path == "/v1/audit" ||
+			strings.HasSuffix(path, ".svg") || strings.HasSuffix(path, ".png") || strings.HasSuffix(path, ".css") || strings.HasSuffix(path, ".js") {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// Rate limiting for mutation endpoints
 		ip := r.RemoteAddr
 		if realIP := r.Header.Get("X-Real-Ip"); realIP != "" {
 			ip = realIP
