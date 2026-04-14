@@ -287,7 +287,8 @@ async function refreshBalance() {
   if (!_pgKey) return;
   try {
     var r = await fetch('/v1/auth/balance', { headers: { 'Authorization': 'Bearer ' + _pgKey } });
-    if (!r.ok) { logout(); return; }
+    if (r.status === 401) { logout(); return; }
+    if (!r.ok) return; // temporary error (502 during deploy, etc.) — don't logout
     var d = await r.json();
     document.getElementById('acct-balance').textContent = (d.balance_sats || 0) + ' sats';
     document.getElementById('acct-free').textContent = d.free_remaining;
