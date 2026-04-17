@@ -1,5 +1,5 @@
 APP     := routecat
-VERSION := 0.1.0
+VERSION := 0.2.1
 COMMIT  := $(shell git rev-parse --short HEAD)
 LDFLAGS := -ldflags "-X main.version=$(VERSION) -X main.commit=$(COMMIT)"
 
