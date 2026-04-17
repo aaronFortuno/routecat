@@ -174,13 +174,28 @@ footer a { color: var(--dim); }
 .footer-links a { color: var(--dim); font-size: 14px; }
 .footer-links a:hover { color: var(--accent); }
 
+/* Nav toggle (hamburger) — hidden on desktop */
+.nav-toggle { display: none; background: none; border: none; cursor: pointer; padding: 6px; flex-direction: column; gap: 5px; }
+.nav-toggle span { display: block; width: 22px; height: 2px; background: var(--dim); border-radius: 2px; transition: all 0.2s; }
+.nav-toggle:hover span { background: var(--text); }
+
 /* Responsive */
 @media (max-width: 768px) {
   .features { grid-template-columns: 1fr; }
   .provider-grid { grid-template-columns: 1fr; }
   .stats-bar { flex-wrap: wrap; gap: 24px; }
-  nav { padding: 12px 16px; }
-  .nav-links { gap: 12px; font-size: 13px; }
+  nav { padding: 12px 16px; flex-wrap: wrap; }
+  .nav-toggle { display: flex; order: 2; }
+  .lang-switcher { order: 3; }
+  .nav-links {
+    display: none; order: 4; width: 100%; flex-direction: column;
+    gap: 0; padding-top: 12px; border-top: 1px solid var(--border); margin-top: 12px;
+  }
+  .nav-links.open { display: flex; }
+  .nav-links a { padding: 10px 0; font-size: 15px; border-bottom: 1px solid var(--border); }
+  .nav-links a:last-child { border-bottom: none; }
   .hero h1 { font-size: 32px; }
   section { padding: 60px 20px; }
+  .footer-inner { flex-direction: column; text-align: center; align-items: center; }
+  .footer-links { justify-content: center; }
 }

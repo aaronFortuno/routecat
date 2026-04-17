@@ -73,13 +73,31 @@ function toggleLangDropdown() {
   if (dd) dd.classList.toggle('open');
 }
 
-// Close dropdown on click outside
+function toggleNav() {
+  var links = document.querySelector('.nav-links');
+  if (links) links.classList.toggle('open');
+}
+
+// Close dropdowns on click outside
 document.addEventListener('click', function (e) {
   var switcher = document.querySelector('.lang-switcher');
   var dd = document.getElementById('lang-dropdown');
   if (dd && switcher && !switcher.contains(e.target)) {
     dd.classList.remove('open');
   }
+  var toggle = document.querySelector('.nav-toggle');
+  var links = document.querySelector('.nav-links');
+  if (links && toggle && !toggle.contains(e.target) && !links.contains(e.target)) {
+    links.classList.remove('open');
+  }
+});
+
+// Close mobile nav when clicking a link
+document.querySelectorAll('.nav-links a').forEach(function (a) {
+  a.addEventListener('click', function () {
+    var links = document.querySelector('.nav-links');
+    if (links) links.classList.remove('open');
+  });
 });
 
 async function switchLang(lang) {
